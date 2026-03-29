@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase'
 import {
   parseKalshiUrl,
   fetchKalshiMarketByTicker,
+  fetchKalshiMarketsByEventTicker,
   kalshiDollarsToProbability,
 } from '@/lib/kalshi'
 
@@ -50,10 +51,15 @@ export async function POST(request: Request) {
   }
 
   // Step 3: market not in DB — fetch live from Kalshi
-  const kalshiMarket = await fetchKalshiMarketByTicker(ticker)
+  // First try direct ticker lookup, then fall back to event ticker search.
+  // Kalshi URLs can be either a market ticker (KXTRUMPRESIGN-26) or an event slug (us-iran-nuclear-deal).
+  let kalshiMarket = await fetchKalshiMarketByTicker(ticker)
+  if (!kalshiMarket) {
+    kalshiMarket = await fetchKalshiMarketsByEventTicker(ticker)
+  }
   if (!kalshiMarket) {
     return NextResponse.json(
-      { error: `Market "${ticker}" not found on Kalshi. Check the URL and try again.` },
+      { error: `No open markets found for "${ticker}" on Kalshi. The market may be closed or the URL may be incorrect.` },
       { status: 404 }
     )
   }

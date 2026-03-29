@@ -103,6 +103,29 @@ export async function fetchKalshiMarketByTicker(ticker: string): Promise<KalshiS
   return data.market ?? null
 }
 
+/**
+ * When a direct ticker lookup fails, try fetching open markets under that event ticker.
+ * Kalshi event URLs (e.g. kalshi.com/markets/us-iran-nuclear-deal) use slugs that map to event tickers.
+ * Returns the first open market found, or null.
+ */
+export async function fetchKalshiMarketsByEventTicker(eventTicker: string): Promise<KalshiSingleMarket | null> {
+  const res = await fetch(
+    `${KALSHI_BASE_URL}/markets?event_ticker=${encodeURIComponent(eventTicker)}&status=open&limit=1`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.KALSHI_API_KEY
+          ? { Authorization: `Bearer ${process.env.KALSHI_API_KEY}` }
+          : {}),
+      },
+      next: { revalidate: 60 },
+    }
+  )
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.markets?.[0] ?? null
+}
+
 export function kalshiDollarsToProbability(market: KalshiSingleMarket): number {
   const bid = parseFloat(market.yes_bid_dollars ?? '0') || 0
   const ask = parseFloat(market.yes_ask_dollars ?? '0') || 0
