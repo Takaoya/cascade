@@ -125,10 +125,13 @@ export default function ScenarioPage() {
       {/* Top bar */}
       <header className="border-b border-zinc-800/60 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-bold tracking-widest text-white uppercase">Cascade</span>
+          <a href="/" className="text-sm font-bold tracking-widest text-white uppercase hover:text-zinc-300 transition-colors">Cascade</a>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">Beta</span>
         </div>
-        <span className="text-xs text-zinc-600">Kalshi · Conditional Probability Engine</span>
+        <nav className="flex items-center gap-5">
+          <span className="text-xs font-semibold text-white border-b border-indigo-500 pb-0.5">Scenario Builder</span>
+          <a href="/top" className="text-xs text-zinc-400 hover:text-white transition-colors">Top Markets →</a>
+        </nav>
       </header>
 
       <div className="flex h-[calc(100vh-49px)]">

@@ -10,12 +10,10 @@ export default function Home() {
           <span className="text-sm font-bold tracking-widest text-white uppercase">Cascade</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">Beta</span>
         </div>
-        <Link
-          href="/scenario"
-          className="text-xs text-zinc-400 hover:text-white transition-colors"
-        >
-          Open App →
-        </Link>
+        <nav className="flex items-center gap-5">
+          <Link href="/top" className="text-xs text-zinc-400 hover:text-white transition-colors">Top Markets</Link>
+          <Link href="/scenario" className="text-xs text-zinc-400 hover:text-white transition-colors">Scenario Builder →</Link>
+        </nav>
       </header>
 
       {/* Hero */}

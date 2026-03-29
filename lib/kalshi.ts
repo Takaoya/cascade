@@ -74,13 +74,16 @@ export function parseKalshiUrl(input: string): string | null {
 
 // ── Single-market lookup ──────────────────────────────────────────────────────
 
-interface KalshiSingleMarket {
+export interface KalshiSingleMarket {
   ticker: string
   event_ticker: string
   title: string
   yes_bid_dollars?: string
   yes_ask_dollars?: string
   last_price_dollars?: string
+  volume_24h_fp?: number
+  open_interest_fp?: number
+  liquidity_dollars?: string
   status: string
 }
 
@@ -124,6 +127,46 @@ export async function fetchKalshiMarketsByEventTicker(eventTicker: string): Prom
   if (!res.ok) return null
   const data = await res.json()
   return data.markets?.[0] ?? null
+}
+
+// ── Batch fetch for top-markets feature ──────────────────────────────────────
+
+const TARGET_EVENTS = [
+  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
+  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
+  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
+  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
+  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
+  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
+  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
+  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
+]
+
+/**
+ * Fetches all open markets across our curated political/economic event tickers in parallel.
+ * Returns a flat list sorted by 24h volume descending.
+ */
+export async function fetchAllCuratedMarkets(): Promise<KalshiSingleMarket[]> {
+  const authHeaders = {
+    'Content-Type': 'application/json',
+    ...(process.env.KALSHI_API_KEY ? { Authorization: `Bearer ${process.env.KALSHI_API_KEY}` } : {}),
+  }
+
+  const results = await Promise.all(
+    TARGET_EVENTS.map(event =>
+      fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
+        headers: authHeaders,
+        next: { revalidate: 300 },
+      })
+        .then(r => r.ok ? r.json() : { markets: [] })
+        .then((d: { markets?: KalshiSingleMarket[] }) => d.markets ?? [])
+        .catch(() => [] as KalshiSingleMarket[])
+    )
+  )
+
+  return results
+    .flat()
+    .sort((a, b) => (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0))
 }
 
 export function kalshiDollarsToProbability(market: KalshiSingleMarket): number {
