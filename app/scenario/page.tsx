@@ -387,12 +387,12 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
   return (
     <div className="relative group/tip">
       {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50
         opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 w-52">
+        <div className="w-2 h-2 bg-zinc-800 border-l border-t border-zinc-700/60 rotate-45 mx-auto -mb-1" />
         <div className="bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 shadow-xl">
           <p className="text-[11px] text-zinc-300 leading-relaxed text-center">{text}</p>
         </div>
-        <div className="w-2 h-2 bg-zinc-800 border-r border-b border-zinc-700/60 rotate-45 mx-auto -mt-1" />
       </div>
     </div>
   )
