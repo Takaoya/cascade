@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { fetchAllCuratedMarkets, kalshiDollarsToProbability } from '@/lib/kalshi'
+import { fetchTopKalshiMarkets, kalshiDollarsToProbability } from '@/lib/kalshi'
 
 export interface TopMarket {
   ticker: string
@@ -18,7 +18,7 @@ export interface TopMarket {
 // Returns top 10 political/economic Kalshi markets by 24h volume, enriched with DB correlation counts.
 export async function GET() {
   const [kalshiMarkets, supabase] = await Promise.all([
-    fetchAllCuratedMarkets(),
+    fetchTopKalshiMarkets(),
     Promise.resolve(createServiceClient()),
   ])
 

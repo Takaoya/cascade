@@ -129,44 +129,44 @@ export async function fetchKalshiMarketsByEventTicker(eventTicker: string): Prom
   return data.markets?.[0] ?? null
 }
 
-// ── Batch fetch for top-markets feature ──────────────────────────────────────
-
-const TARGET_EVENTS = [
-  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
-  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
-  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
-  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
-  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
-  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
-  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
-  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
-]
+// ── Full market fetch for top-markets feature ─────────────────────────────────
 
 /**
- * Fetches all open markets across our curated political/economic event tickers in parallel.
- * Returns a flat list sorted by 24h volume descending.
+ * Paginates through ALL open Kalshi markets (authenticated) and returns them
+ * sorted by 24h volume descending. No category filtering — the full catalog.
  */
-export async function fetchAllCuratedMarkets(): Promise<KalshiSingleMarket[]> {
+export async function fetchTopKalshiMarkets(maxPages = 20): Promise<KalshiSingleMarket[]> {
   const authHeaders = {
     'Content-Type': 'application/json',
     ...(process.env.KALSHI_API_KEY ? { Authorization: `Bearer ${process.env.KALSHI_API_KEY}` } : {}),
   }
 
-  const results = await Promise.all(
-    TARGET_EVENTS.map(event =>
-      fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
-        headers: authHeaders,
-        next: { revalidate: 300 },
-      })
-        .then(r => r.ok ? r.json() : { markets: [] })
-        .then((d: { markets?: KalshiSingleMarket[] }) => d.markets ?? [])
-        .catch(() => [] as KalshiSingleMarket[])
-    )
-  )
+  const all: KalshiSingleMarket[] = []
+  let cursor: string | null = null
+  let page = 0
 
-  return results
-    .flat()
-    .sort((a, b) => (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0))
+  while (page < maxPages) {
+    const url = new URL(`${KALSHI_BASE_URL}/markets`)
+    url.searchParams.set('status', 'open')
+    url.searchParams.set('limit', '200')
+    if (cursor) url.searchParams.set('cursor', cursor)
+
+    const res = await fetch(url.toString(), {
+      headers: authHeaders,
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) break
+
+    const data = await res.json()
+    const markets: KalshiSingleMarket[] = data.markets ?? []
+    all.push(...markets)
+
+    cursor = data.cursor ?? null
+    page++
+    if (!cursor || markets.length === 0) break
+  }
+
+  return all.sort((a, b) => (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0))
 }
 
 export function kalshiDollarsToProbability(market: KalshiSingleMarket): number {
