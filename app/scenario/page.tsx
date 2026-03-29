@@ -9,6 +9,8 @@ export default function ScenarioPage() {
   const [query, setQuery] = useState('')
   const [markets, setMarkets] = useState<Market[]>([])
   const [searching, setSearching] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
+  const [urlLoading, setUrlLoading] = useState(false)
 
   const [assumedMarket, setAssumedMarket] = useState<Market | null>(null)
   const [assumedProbability, setAssumedProbability] = useState(1.0)
@@ -16,19 +18,7 @@ export default function ScenarioPage() {
   const [results, setResults] = useState<ScenarioResult[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!query || query.length < 2) { setMarkets([]); return }
-    const t = setTimeout(async () => {
-      setSearching(true)
-      try {
-        const res = await fetch(`/api/markets?q=${encodeURIComponent(query)}`)
-        const data = await res.json()
-        setMarkets(data.markets ?? [])
-      } finally { setSearching(false) }
-    }, 300)
-    return () => clearTimeout(t)
-  }, [query])
+  const [noRelationships, setNoRelationships] = useState(false)
 
   const runScenario = useCallback(async (market: Market, prob: number, yes: boolean) => {
     setLoading(true)
@@ -43,12 +33,67 @@ export default function ScenarioPage() {
     } finally { setLoading(false) }
   }, [])
 
+  // Detect Kalshi URL paste
+  const handleInputChange = useCallback(async (value: string) => {
+    setQuery(value)
+    setUrlError(null)
+    setNoRelationships(false)
+
+    if (value.includes('kalshi.com/markets/')) {
+      setUrlLoading(true)
+      setMarkets([])
+      try {
+        const res = await fetch('/api/markets/from-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: value }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setUrlError(data.error ?? 'Could not resolve URL')
+          return
+        }
+        const market = data.market as Market
+        setQuery(market.title)
+        setAssumedMarket(market)
+        setMarkets([])
+        setResolvesYes(true)
+        setExpandedRow(null)
+        setNoRelationships(data.mapped_relationships === 0)
+        if (data.mapped_relationships > 0) {
+          runScenario(market, assumedProbability, true)
+        }
+      } catch {
+        setUrlError('Failed to fetch market — check your connection')
+      } finally {
+        setUrlLoading(false)
+      }
+      return
+    }
+  }, [assumedProbability, runScenario])
+
+  useEffect(() => {
+    if (!query || query.length < 2) { setMarkets([]); return }
+    if (query.includes('kalshi.com/markets/')) return // handled above
+    const t = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(`/api/markets?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        setMarkets(data.markets ?? [])
+      } finally { setSearching(false) }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [query])
+
   const handleSelect = (market: Market) => {
     setAssumedMarket(market)
     setQuery(market.title)
     setMarkets([])
     setResolvesYes(true)
     setExpandedRow(null)
+    setNoRelationships(false)
+    setUrlError(null)
     runScenario(market, assumedProbability, true)
   }
 
@@ -99,12 +144,22 @@ export default function ScenarioPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
-                type="text" value={query} onChange={e => setQuery(e.target.value)}
-                placeholder="Search markets..."
-                className="w-full bg-zinc-900 border border-zinc-700/50 rounded-lg pl-9 pr-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/70 transition-colors"
+                type="text" value={query} onChange={e => handleInputChange(e.target.value)}
+                placeholder="Search or paste Kalshi URL..."
+                className={`w-full bg-zinc-900 border rounded-lg pl-9 pr-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none transition-colors ${
+                  urlError ? 'border-red-500/50 focus:border-red-500' : 'border-zinc-700/50 focus:border-indigo-500/70'
+                }`}
               />
-              {searching && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />}
+              {(searching || urlLoading) && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+              )}
             </div>
+            {urlError && (
+              <p className="mt-2 text-[11px] text-red-400 leading-snug">{urlError}</p>
+            )}
+            {!urlError && (
+              <p className="mt-1.5 text-[10px] text-zinc-700">Paste any kalshi.com/markets/… URL</p>
+            )}
           </div>
 
           {/* Search results or hints */}
@@ -234,9 +289,24 @@ export default function ScenarioPage() {
                     <p className="text-xs text-zinc-600">Computing cascade...</p>
                   </div>
                 ) : results.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-48 gap-2">
-                    <p className="text-zinc-500 text-sm">No related markets mapped.</p>
-                    <p className="text-zinc-700 text-xs">Try a different market.</p>
+                  <div className="flex flex-col items-center justify-center h-48 gap-3">
+                    {noRelationships ? (
+                      <>
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 text-base">!</div>
+                        <div className="text-center max-w-xs">
+                          <p className="text-zinc-300 text-sm font-medium mb-1">Market loaded — no relationships mapped yet</p>
+                          <p className="text-zinc-600 text-xs leading-relaxed">
+                            This market was fetched live from Kalshi but we haven't mapped its correlations yet.
+                            Try searching for a market like <button onClick={() => handleInputChange('Trump resign')} className="text-indigo-400 hover:text-indigo-300 underline">Trump resign</button> or <button onClick={() => handleInputChange('Fed abolished')} className="text-indigo-400 hover:text-indigo-300 underline">Fed abolished</button> to see a full cascade.
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-zinc-500 text-sm">No related markets mapped.</p>
+                        <p className="text-zinc-700 text-xs">Try a different market.</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <>
