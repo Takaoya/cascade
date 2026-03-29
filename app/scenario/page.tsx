@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ShareButton } from '@/components/ShareButton'
 import type { Market, ScenarioResult } from '@/lib/probability'
 import { formatProbability, formatDistortion } from '@/lib/probability'
@@ -384,16 +384,30 @@ export default function ScenarioPage() {
 
 // ── Tooltip ───────────────────────────────────────────────
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const ref = React.useRef<HTMLDivElement>(null)
+
+  const show = () => {
+    if (!ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    setPos({ top: r.bottom + 8, left: r.left + r.width / 2 })
+    setVisible(true)
+  }
+
   return (
-    <div className="relative group/tip">
+    <div ref={ref} onMouseEnter={show} onMouseLeave={() => setVisible(false)}>
       {children}
-      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50
-        opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 w-52">
-        <div className="w-2 h-2 bg-zinc-800 border-l border-t border-zinc-700/60 rotate-45 mx-auto -mb-1" />
-        <div className="bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 shadow-xl">
-          <p className="text-[11px] text-zinc-300 leading-relaxed text-center">{text}</p>
+      {visible && (
+        <div
+          className="fixed z-[999] w-52 pointer-events-none"
+          style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
+        >
+          <div className="bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 shadow-xl">
+            <p className="text-[11px] text-zinc-300 leading-relaxed text-center">{text}</p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
