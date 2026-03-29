@@ -267,10 +267,18 @@ export default function ScenarioPage() {
                   {/* Live stats */}
                   {results.length > 0 && !loading && (
                     <div className="flex items-center gap-3 shrink-0">
-                      <StatPill label="Signals" value={String(results.length)} />
-                      <StatPill label="Buy YES" value={String(upCount)} color="emerald" />
-                      <StatPill label="Buy NO" value={String(downCount)} color="red" />
-                      <StatPill label="Max Edge" value={`${maxEdge.toFixed(1)}pp`} color="yellow" />
+                      <Tooltip text="Total related markets with a meaningful probability shift given this scenario.">
+                        <StatPill label="Signals" value={String(results.length)} />
+                      </Tooltip>
+                      <Tooltip text="Markets where fair value is HIGHER than current price — potentially underpriced if this resolves YES.">
+                        <StatPill label="Buy YES" value={String(upCount)} color="emerald" />
+                      </Tooltip>
+                      <Tooltip text="Markets where fair value is LOWER than current price — potentially overpriced if this resolves YES.">
+                        <StatPill label="Buy NO" value={String(downCount)} color="red" />
+                      </Tooltip>
+                      <Tooltip text="The largest single mispricing found, in percentage points. Higher = bigger gap between current price and fair value.">
+                        <StatPill label="Max Edge" value={`${maxEdge.toFixed(1)}pp`} color="yellow" />
+                      </Tooltip>
                     </div>
                   )}
 
@@ -316,12 +324,36 @@ export default function ScenarioPage() {
                     {/* Column headers */}
                     <div className="grid grid-cols-12 gap-2 px-6 py-2 border-b border-zinc-800/40 sticky top-0 bg-[#0a0a0a] z-10">
                       <div className="col-span-4 text-[10px] uppercase tracking-widest text-zinc-600">Market</div>
-                      <div className="col-span-2 text-center text-[10px] uppercase tracking-widest text-zinc-600">Trade</div>
-                      <div className="col-span-1 text-right text-[10px] uppercase tracking-widest text-zinc-600">Now</div>
-                      <div className="col-span-1 text-right text-[10px] uppercase tracking-widest text-zinc-600">Fair</div>
-                      <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-zinc-600">Edge</div>
-                      <div className="col-span-1 text-center text-[10px] uppercase tracking-widest text-zinc-600">Signal</div>
-                      <div className="col-span-1 text-right text-[10px] uppercase tracking-widest text-zinc-600">Score</div>
+                      <div className="col-span-2 text-center">
+                        <Tooltip text="Recommended action — BUY YES if the market is underpriced, BUY NO if overpriced, given your assumed scenario.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Trade</span>
+                        </Tooltip>
+                      </div>
+                      <div className="col-span-1 text-right">
+                        <Tooltip text="Current market price on Kalshi right now.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Now</span>
+                        </Tooltip>
+                      </div>
+                      <div className="col-span-1 text-right">
+                        <Tooltip text="Implied fair value — what this market should be worth if your assumed scenario is correct.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Fair</span>
+                        </Tooltip>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <Tooltip text="The gap between fair value and current price. Positive (↑) means the market is underpriced; negative (↓) means overpriced.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Edge</span>
+                        </Tooltip>
+                      </div>
+                      <div className="col-span-1 text-center">
+                        <Tooltip text="Confidence level based on the strength of the relationship between markets. 3 dots = high conviction, 1 dot = weak signal.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Signal</span>
+                        </Tooltip>
+                      </div>
+                      <div className="col-span-1 text-right">
+                        <Tooltip text="Edge in percentage points. Higher score = larger mispricing = more actionable opportunity.">
+                          <span className="text-[10px] uppercase tracking-widest text-zinc-600 cursor-default underline decoration-dotted decoration-zinc-700">Score</span>
+                        </Tooltip>
+                      </div>
                     </div>
                     {results.map((result, i) => (
                       <ResultRow key={result.market.id} result={result} rank={i + 1}
@@ -345,6 +377,22 @@ export default function ScenarioPage() {
             </>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Tooltip ───────────────────────────────────────────────
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <div className="relative group/tip">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+        opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 w-52">
+        <div className="bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 shadow-xl">
+          <p className="text-[11px] text-zinc-300 leading-relaxed text-center">{text}</p>
+        </div>
+        <div className="w-2 h-2 bg-zinc-800 border-r border-b border-zinc-700/60 rotate-45 mx-auto -mt-1" />
       </div>
     </div>
   )
