@@ -63,9 +63,12 @@ export function parseKalshiUrl(input: string): string | null {
     if (!url.hostname.includes('kalshi.com')) return null
     const segments = url.pathname.split('/').filter(Boolean)
     const idx = segments.indexOf('markets')
-    if (idx === -1) return null
-    // Prefer the deeper segment (specific market over event), fall back to the one right after 'markets'
-    const ticker = segments[idx + 2] || segments[idx + 1]
+    if (idx === -1 || idx + 1 >= segments.length) return null
+    // Always take the LAST segment — Kalshi URLs can be:
+    //   /markets/TICKER
+    //   /markets/EVENT/TICKER
+    //   /markets/EVENT/slug-name/TICKER  ← the slug is never the ticker
+    const ticker = segments[segments.length - 1]
     return ticker?.toUpperCase() || null
   } catch {
     return null
