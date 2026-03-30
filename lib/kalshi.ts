@@ -160,15 +160,22 @@ export async function fetchTopKalshiMarkets(): Promise<KalshiSingleMarket[]> {
   }
 
   const results = await Promise.all(
-    TARGET_EVENTS.map(event =>
-      fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
-        headers: authHeaders,
-        next: { revalidate: 300 },
-      })
-        .then(r => r.ok ? r.json() : { markets: [] })
-        .then((d: { markets?: KalshiSingleMarket[] }) => d.markets ?? [])
-        .catch(() => [] as KalshiSingleMarket[])
-    )
+    TARGET_EVENTS.map(async event => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 6000)
+      try {
+        const res = await fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
+          headers: authHeaders,
+          signal: controller.signal,
+          next: { revalidate: 300 },
+        })
+        return res.ok ? ((await res.json()).markets ?? []) as KalshiSingleMarket[] : []
+      } catch {
+        return [] as KalshiSingleMarket[]
+      } finally {
+        clearTimeout(timeout)
+      }
+    })
   )
 
   const all = results.flat()

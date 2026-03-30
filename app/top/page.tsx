@@ -3,7 +3,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { TopMarket } from '@/app/api/markets/top/route'
+export interface TopMarket {
+  ticker: string
+  event_ticker: string
+  title: string
+  probability: number
+  volume_24h: number
+  open_interest: number
+  liquidity: number
+  db_id: string | null
+  relationship_count: number
+}
 import type { ScenarioResult } from '@/lib/probability'
 import { formatProbability, formatDistortion } from '@/lib/probability'
 
