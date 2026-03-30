@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "seed:markets": "tsx scripts/seed.ts --markets-only"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
