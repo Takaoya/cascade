@@ -33,27 +33,28 @@ export async function GET() {
       relCounts[r.market_a_id] = (relCounts[r.market_a_id] ?? 0) + 1
     })
 
-    // Score each market: weight probability + relationship count
-    // This surfaces markets that are both active (meaningful price) and well-correlated
-    const scored = markets.map(m => ({
-      ticker: m.external_id,
-      event_ticker: m.category,
-      title: m.title,
-      probability: m.probability,
-      volume_24h: 0, // not stored in DB — would need live Kalshi fetch
-      open_interest: 0,
-      liquidity: 0,
-      db_id: m.id,
-      relationship_count: relCounts[m.id] ?? 0,
-      last_updated: m.last_updated,
-    }))
-
-    // Sort: most correlated first, then by probability
-    .sort((a, b) => {
-      const relDiff = b.relationship_count - a.relationship_count
-      if (relDiff !== 0) return relDiff
-      return b.probability - a.probability
-    })
+    const scored = markets
+      // Filter out near-certain markets (already resolved / no trading edge)
+      .filter(m => m.probability > 0.01 && m.probability < 0.99)
+      .map(m => ({
+        ticker: m.external_id,
+        event_ticker: m.category,
+        title: m.title,
+        probability: m.probability,
+        volume_24h: 0,
+        open_interest: 0,
+        liquidity: 0,
+        db_id: m.id,
+        relationship_count: relCounts[m.id] ?? 0,
+        last_updated: m.last_updated,
+      }))
+      // Sort: mapped markets first, then by distance from 50% (most uncertain = most interesting)
+      .sort((a, b) => {
+        const relDiff = b.relationship_count - a.relationship_count
+        if (relDiff !== 0) return relDiff
+        // Closer to 50% = more uncertain = more interesting
+        return Math.abs(a.probability - 0.5) - Math.abs(b.probability - 0.5)
+      })
 
     return NextResponse.json({
       markets: scored.slice(0, 10),
