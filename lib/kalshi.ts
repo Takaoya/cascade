@@ -129,44 +129,67 @@ export async function fetchKalshiMarketsByEventTicker(eventTicker: string): Prom
   return data.markets?.[0] ?? null
 }
 
-// ── Full market fetch for top-markets feature ─────────────────────────────────
+// ── Top markets fetch ─────────────────────────────────────────────────────────
+
+const TARGET_EVENTS = [
+  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
+  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
+  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
+  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
+  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
+  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
+  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
+  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
+]
 
 /**
- * Paginates through ALL open Kalshi markets (authenticated) and returns them
- * sorted by 24h volume descending. No category filtering — the full catalog.
+ * Fetches top Kalshi markets for the Market Movers page.
+ *
+ * Strategy:
+ * 1. Fetch all markets across our curated political/economic event tickers in parallel.
+ *    These are guaranteed to have real prices and represent meaningful markets.
+ * 2. Filter to markets with an actual price (eliminates zero-price parlay markets).
+ * 3. Sort by 24h volume → open interest → price.
+ *
+ * Note: Requires KALSHI_API_KEY to be set as a Vercel environment variable.
  */
-export async function fetchTopKalshiMarkets(maxPages = 20): Promise<KalshiSingleMarket[]> {
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    ...(process.env.KALSHI_API_KEY ? { Authorization: `Bearer ${process.env.KALSHI_API_KEY}` } : {}),
+export async function fetchTopKalshiMarkets(): Promise<KalshiSingleMarket[]> {
+  const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (process.env.KALSHI_API_KEY) {
+    authHeaders['Authorization'] = `Bearer ${process.env.KALSHI_API_KEY}`
   }
 
-  const all: KalshiSingleMarket[] = []
-  let cursor: string | null = null
-  let page = 0
+  const results = await Promise.all(
+    TARGET_EVENTS.map(event =>
+      fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
+        headers: authHeaders,
+        next: { revalidate: 300 },
+      })
+        .then(r => r.ok ? r.json() : { markets: [] })
+        .then((d: { markets?: KalshiSingleMarket[] }) => d.markets ?? [])
+        .catch(() => [] as KalshiSingleMarket[])
+    )
+  )
 
-  while (page < maxPages) {
-    const url = new URL(`${KALSHI_BASE_URL}/markets`)
-    url.searchParams.set('status', 'open')
-    url.searchParams.set('limit', '200')
-    if (cursor) url.searchParams.set('cursor', cursor)
+  const all = results.flat()
 
-    const res = await fetch(url.toString(), {
-      headers: authHeaders,
-      next: { revalidate: 300 },
-    })
-    if (!res.ok) break
+  // Keep only markets with a real price
+  const priced = all.filter(m => {
+    const bid = parseFloat(m.yes_bid_dollars ?? '0') || 0
+    const last = parseFloat(m.last_price_dollars ?? '0') || 0
+    return bid > 0 || last > 0
+  })
 
-    const data = await res.json()
-    const markets: KalshiSingleMarket[] = data.markets ?? []
-    all.push(...markets)
-
-    cursor = data.cursor ?? null
-    page++
-    if (!cursor || markets.length === 0) break
-  }
-
-  return all.sort((a, b) => (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0))
+  // Sort: 24h volume → open interest → price (all as fallbacks when previous is 0)
+  return priced.sort((a, b) => {
+    const volDiff = (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0)
+    if (Math.abs(volDiff) > 0.0001) return volDiff
+    const oiDiff = (b.open_interest_fp ?? 0) - (a.open_interest_fp ?? 0)
+    if (Math.abs(oiDiff) > 0.0001) return oiDiff
+    const priceA = parseFloat(a.yes_bid_dollars ?? a.last_price_dollars ?? '0') || 0
+    const priceB = parseFloat(b.yes_bid_dollars ?? b.last_price_dollars ?? '0') || 0
+    return priceB - priceA
+  })
 }
 
 export function kalshiDollarsToProbability(market: KalshiSingleMarket): number {
