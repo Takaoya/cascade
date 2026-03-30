@@ -1,66 +1,68 @@
-export const maxDuration = 30 // allow up to 30s for parallel Kalshi calls
-
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-import { fetchTopKalshiMarkets, kalshiDollarsToProbability } from '@/lib/kalshi'
-
-// TopMarket type is defined in app/top/page.tsx to avoid importing server code into client components
 
 // GET /api/markets/top
-// Returns top 10 political/economic Kalshi markets sorted by activity, enriched with DB correlation counts.
+// Reads top markets directly from our Supabase DB — no live Kalshi calls,
+// so this is fast and reliable. Prices reflect the last seed/sync run.
 export async function GET() {
   try {
-    const [kalshiMarkets, supabase] = await Promise.all([
-      fetchTopKalshiMarkets(),
-      Promise.resolve(createServiceClient()),
-    ])
+    const supabase = createServiceClient()
 
-    if (kalshiMarkets.length === 0) {
-      return NextResponse.json({ markets: [], fetched_at: new Date().toISOString(), error: 'No markets returned from Kalshi' })
-    }
-
-    const top15 = kalshiMarkets.slice(0, 15)
-    const tickers = top15.map(m => m.ticker)
-
-    const { data: dbMarkets } = await supabase
+    // Fetch all our curated markets
+    const { data: markets, error } = await supabase
       .from('markets')
-      .select('id, external_id')
-      .in('external_id', tickers)
+      .select('id, external_id, title, probability, category, source, last_updated')
+      .eq('source', 'kalshi')
+      .order('probability', { ascending: false })
 
-    const dbById = Object.fromEntries((dbMarkets ?? []).map(m => [m.external_id, m.id]))
-
-    const dbIds = Object.values(dbById)
-    const relCounts: Record<string, number> = {}
-
-    if (dbIds.length > 0) {
-      const { data: rels } = await supabase
-        .from('market_relationships')
-        .select('market_a_id')
-        .in('market_a_id', dbIds)
-
-      ;(rels ?? []).forEach(r => {
-        relCounts[r.market_a_id] = (relCounts[r.market_a_id] ?? 0) + 1
-      })
+    if (error) {
+      return NextResponse.json({ markets: [], error: error.message, fetched_at: new Date().toISOString() }, { status: 500 })
     }
 
-    const result = top15.slice(0, 10).map(m => {
-      const dbId = dbById[m.ticker] ?? null
-      return {
-        ticker: m.ticker,
-        event_ticker: m.event_ticker,
-        title: m.title,
-        probability: kalshiDollarsToProbability(m),
-        volume_24h: m.volume_24h_fp ?? 0,
-        open_interest: m.open_interest_fp ?? 0,
-        liquidity: parseFloat(m.liquidity_dollars ?? '0') || 0,
-        db_id: dbId,
-        relationship_count: dbId ? (relCounts[dbId] ?? 0) : 0,
-      }
+    if (!markets || markets.length === 0) {
+      return NextResponse.json({ markets: [], error: 'No markets in database', fetched_at: new Date().toISOString() })
+    }
+
+    // Get relationship counts for all markets
+    const { data: rels } = await supabase
+      .from('market_relationships')
+      .select('market_a_id')
+
+    const relCounts: Record<string, number> = {}
+    ;(rels ?? []).forEach(r => {
+      relCounts[r.market_a_id] = (relCounts[r.market_a_id] ?? 0) + 1
     })
 
-    return NextResponse.json({ markets: result, fetched_at: new Date().toISOString() })
+    // Score each market: weight probability + relationship count
+    // This surfaces markets that are both active (meaningful price) and well-correlated
+    const scored = markets.map(m => ({
+      ticker: m.external_id,
+      event_ticker: m.category,
+      title: m.title,
+      probability: m.probability,
+      volume_24h: 0, // not stored in DB — would need live Kalshi fetch
+      open_interest: 0,
+      liquidity: 0,
+      db_id: m.id,
+      relationship_count: relCounts[m.id] ?? 0,
+      last_updated: m.last_updated,
+    }))
+
+    // Sort: most correlated first, then by probability
+    .sort((a, b) => {
+      const relDiff = b.relationship_count - a.relationship_count
+      if (relDiff !== 0) return relDiff
+      return b.probability - a.probability
+    })
+
+    return NextResponse.json({
+      markets: scored.slice(0, 10),
+      total: markets.length,
+      fetched_at: new Date().toISOString(),
+      source: 'db',
+    })
   } catch (err) {
     console.error('[/api/markets/top]', err)
-    return NextResponse.json({ markets: [], error: 'Failed to fetch market data', fetched_at: new Date().toISOString() }, { status: 500 })
+    return NextResponse.json({ markets: [], error: 'Server error', fetched_at: new Date().toISOString() }, { status: 500 })
   }
 }

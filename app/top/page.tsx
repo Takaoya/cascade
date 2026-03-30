@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-export interface TopMarket {
+
+interface TopMarket {
   ticker: string
   event_ticker: string
   title: string
@@ -13,7 +13,9 @@ export interface TopMarket {
   liquidity: number
   db_id: string | null
   relationship_count: number
+  last_updated?: string
 }
+
 import type { ScenarioResult } from '@/lib/probability'
 import { formatProbability, formatDistortion } from '@/lib/probability'
 
@@ -21,18 +23,23 @@ export default function TopMarketsPage() {
   const [markets, setMarkets] = useState<TopMarket[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchedAt, setFetchedAt] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [cascades, setCascades] = useState<Record<string, ScenarioResult[]>>({})
   const [cascadeLoading, setCascadeLoading] = useState<Record<string, boolean>>({})
-  const router = useRouter()
 
   useEffect(() => {
     fetch('/api/markets/top')
       .then(r => r.json())
       .then(d => {
-        setMarkets(d.markets ?? [])
-        setFetchedAt(d.fetched_at ?? null)
+        if (d.error && !d.markets?.length) {
+          setError(d.error)
+        } else {
+          setMarkets(d.markets ?? [])
+          setFetchedAt(d.fetched_at ?? null)
+        }
       })
+      .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -59,8 +66,7 @@ export default function TopMarketsPage() {
   }
 
   const goToCascade = (market: TopMarket) => {
-    // Navigate to scenario page — encode the db_id in the URL so it can pre-load
-    router.push(`/scenario?market_id=${market.db_id ?? ''}&ticker=${market.ticker}`)
+    window.location.href = `/scenario`
   }
 
   return (
@@ -86,7 +92,7 @@ export default function TopMarketsPage() {
             <div>
               <p className="text-[10px] uppercase tracking-widest text-indigo-400 mb-1">Kalshi · Political Markets</p>
               <h1 className="text-2xl font-bold tracking-tight">Market Movers</h1>
-              <p className="text-zinc-500 text-sm mt-1">Top 10 markets by 24h volume — click any row to see correlations</p>
+              <p className="text-zinc-500 text-sm mt-1">Top 10 most-correlated markets — click any row to see cascade signals</p>
             </div>
             {fetchedAt && (
               <p className="text-[10px] text-zinc-700">
@@ -99,11 +105,12 @@ export default function TopMarketsPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="w-6 h-6 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
-            <p className="text-xs text-zinc-600">Fetching live Kalshi data...</p>
+            <p className="text-xs text-zinc-600">Loading markets...</p>
           </div>
-        ) : markets.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="text-zinc-500">No market data available. Check your Kalshi API key.</p>
+        ) : error || markets.length === 0 ? (
+          <div className="text-center py-24 space-y-2">
+            <p className="text-zinc-400 text-sm">{error ?? 'No markets found.'}</p>
+            <p className="text-zinc-700 text-xs">Make sure the database has been seeded — run <code className="text-zinc-500">npm run seed</code> locally.</p>
           </div>
         ) : (
           <div className="border border-zinc-800/60 rounded-2xl overflow-hidden">
