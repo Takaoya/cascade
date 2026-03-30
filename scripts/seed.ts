@@ -229,6 +229,8 @@ async function seedRelationships() {
     if (!relError) {
       console.log(`  ✓ ${eventA} → ${eventB} (${relType}, ${weight})`)
       created++
+    } else {
+      console.error(`  ✗ ${eventA} → ${eventB}: ${relError.message}`)
     }
   }
 
