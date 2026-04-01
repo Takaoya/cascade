@@ -102,17 +102,15 @@ export default function TopMarketsPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-10">
 
-        {/* Page header */}
-        <div className="mb-10 flex items-end justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-violet-400 mb-2 font-bold">Kalshi · Political Markets</p>
-            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              Market Movers
-            </h1>
-            <p className="text-slate-500 text-sm mt-2">Top correlated markets — click any card to see cascade signals</p>
-          </div>
+        {/* Page header — centered */}
+        <div className="mb-10 text-center">
+          <p className="text-[10px] uppercase tracking-widest text-violet-400 mb-3 font-bold">Kalshi · Political Markets</p>
+          <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-violet-300 via-white to-cyan-300 bg-clip-text text-transparent mb-3">
+            Market Movers
+          </h1>
+          <p className="text-slate-500 text-sm">Top correlated markets — click any card to see cascade signals</p>
           {fetchedAt && (
-            <div className="flex items-center gap-2 text-[10px] text-slate-600">
+            <div className="flex items-center justify-center gap-2 text-[10px] text-slate-600 mt-3">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
               Live · {new Date(fetchedAt).toLocaleTimeString()}
             </div>

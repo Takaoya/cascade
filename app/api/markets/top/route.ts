@@ -1,18 +1,32 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 
+// Curated political/economic event tickers — only these show on the Top Markets page.
+// Same list used in seed.ts TARGET_EVENTS (minus the ones with no markets).
+const CURATED_EVENT_TICKERS = [
+  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
+  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
+  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
+  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
+  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
+  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
+  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
+  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
+]
+
 // GET /api/markets/top
-// Reads top markets directly from our Supabase DB — no live Kalshi calls,
-// so this is fast and reliable. Prices reflect the last seed/sync run.
+// Returns the top 10 most-correlated curated political/economic markets.
+// Reads from Supabase DB (fast, no Kalshi API calls). Prices reflect last seed run.
 export async function GET() {
   try {
     const supabase = createServiceClient()
 
-    // Fetch all our curated markets
+    // Fetch only our curated political/economic markets
     const { data: markets, error } = await supabase
       .from('markets')
       .select('id, external_id, title, probability, category, source, last_updated')
       .eq('source', 'kalshi')
+      .in('category', CURATED_EVENT_TICKERS)
       .order('probability', { ascending: false })
 
     if (error) {
