@@ -36,18 +36,25 @@ export async function GET() {
     const scored = markets
       // Filter out near-certain markets (already resolved / no trading edge)
       .filter(m => m.probability > 0.01 && m.probability < 0.99)
-      .map(m => ({
-        ticker: m.external_id,
-        event_ticker: m.category,
-        title: m.title,
-        probability: m.probability,
-        volume_24h: 0,
-        open_interest: 0,
-        liquidity: 0,
-        db_id: m.id,
-        relationship_count: relCounts[m.id] ?? 0,
-        last_updated: m.last_updated,
-      }))
+      .map(m => {
+        const eventTicker = (m.category ?? '').toLowerCase()
+        const marketTicker = (m.external_id ?? '').toLowerCase()
+        // Kalshi URL: event page (most reliable without the slug segment)
+        const kalshi_url = `https://kalshi.com/markets/${eventTicker}`
+        return {
+          ticker: m.external_id,
+          event_ticker: m.category,
+          title: m.title,
+          probability: m.probability,
+          volume_24h: 0,
+          open_interest: 0,
+          liquidity: 0,
+          db_id: m.id,
+          relationship_count: relCounts[m.id] ?? 0,
+          last_updated: m.last_updated,
+          kalshi_url,
+        }
+      })
       // Sort: mapped markets first, then by distance from 50% (most uncertain = most interesting)
       .sort((a, b) => {
         const relDiff = b.relationship_count - a.relationship_count
