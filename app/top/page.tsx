@@ -49,7 +49,7 @@ export default function TopMarketsPage() {
     setExpandedId(key)
 
     if (!market.db_id || market.relationship_count === 0) return
-    if (cascades[key]) return // already fetched
+    if (cascades[key]) return
 
     setCascadeLoading(prev => ({ ...prev, [key]: true }))
     try {
@@ -65,64 +65,66 @@ export default function TopMarketsPage() {
     }
   }
 
-  const goToCascade = (market: TopMarket) => {
-    window.location.href = `/scenario`
-  }
-
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans">
+    <div className="min-h-screen bg-[#060a0f] text-zinc-100 font-sans">
 
       {/* Nav */}
-      <header className="border-b border-zinc-800/60 px-6 py-3 flex items-center justify-between">
+      <header className="border-b border-slate-800/60 px-6 py-3 flex items-center justify-between bg-[#060a0f]/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-bold tracking-widest text-white uppercase hover:text-zinc-300 transition-colors">Cascade</Link>
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">Beta</span>
+          <Link href="/" className="text-sm font-black tracking-[0.2em] uppercase bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+            Cascade
+          </Link>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-violet-500/15 text-violet-400 border border-violet-500/25 uppercase tracking-widest font-bold">Beta</span>
         </div>
-        <nav className="flex items-center gap-5">
-          <span className="text-xs font-semibold text-white border-b border-indigo-500 pb-0.5">Top Markets</span>
-          <Link href="/scenario" className="text-xs text-zinc-400 hover:text-white transition-colors">Scenario Builder →</Link>
+        <nav className="flex items-center gap-6">
+          <span className="text-xs font-bold text-white relative after:absolute after:-bottom-0.5 after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-violet-500 after:to-cyan-500">
+            Market Movers
+          </span>
+          <Link href="/scenario" className="text-xs text-slate-500 hover:text-white transition-colors">Scenario Builder →</Link>
         </nav>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-10">
 
         {/* Page header */}
         <div className="mb-8">
+          <p className="text-[10px] uppercase tracking-widest text-violet-400 mb-2 font-bold">Kalshi · Political Markets</p>
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-indigo-400 mb-1">Kalshi · Political Markets</p>
-              <h1 className="text-2xl font-bold tracking-tight">Market Movers</h1>
-              <p className="text-zinc-500 text-sm mt-1">Top 10 most-correlated markets — click any row to see cascade signals</p>
+              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                Market Movers
+              </h1>
+              <p className="text-slate-500 text-sm mt-1.5">Top 10 most-correlated markets — click any row to see cascade signals</p>
             </div>
             {fetchedAt && (
-              <p className="text-[10px] text-zinc-700">
-                Live data · {new Date(fetchedAt).toLocaleTimeString()}
-              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                Live · {new Date(fetchedAt).toLocaleTimeString()}
+              </div>
             )}
           </div>
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-6 h-6 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
-            <p className="text-xs text-zinc-600">Loading markets...</p>
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <div className="w-8 h-8 border-2 border-slate-800 border-t-violet-500 rounded-full animate-spin" />
+            <p className="text-xs text-slate-600 tracking-wide">Loading markets…</p>
           </div>
         ) : error || markets.length === 0 ? (
-          <div className="text-center py-24 space-y-2">
-            <p className="text-zinc-400 text-sm">{error ?? 'No markets found.'}</p>
-            <p className="text-zinc-700 text-xs">Make sure the database has been seeded — run <code className="text-zinc-500">npm run seed</code> locally.</p>
+          <div className="text-center py-32 space-y-3">
+            <p className="text-slate-400 text-sm">{error ?? 'No markets found.'}</p>
+            <p className="text-slate-700 text-xs">Run <code className="text-slate-500 bg-slate-800/50 px-1.5 py-0.5 rounded">npm run seed</code> locally to populate the database.</p>
           </div>
         ) : (
-          <div className="border border-zinc-800/60 rounded-2xl overflow-hidden">
+          <div className="border border-slate-800/60 rounded-2xl overflow-hidden">
 
             {/* Column headers */}
-            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-zinc-800/60 bg-zinc-900/30">
-              <div className="col-span-1 text-[10px] uppercase tracking-widest text-zinc-600">#</div>
-              <div className="col-span-4 text-[10px] uppercase tracking-widest text-zinc-600">Market</div>
-              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-zinc-600">Price</div>
-              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-zinc-600">24h Vol</div>
-              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-zinc-600">Signals</div>
-              <div className="col-span-1 text-right text-[10px] uppercase tracking-widest text-zinc-600"></div>
+            <div className="grid grid-cols-12 gap-3 px-5 py-3 border-b border-slate-800/60 bg-slate-900/40">
+              <div className="col-span-1 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">#</div>
+              <div className="col-span-5 text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Market</div>
+              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Price</div>
+              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-slate-600 font-semibold">24h Vol</div>
+              <div className="col-span-2 text-right text-[10px] uppercase tracking-widest text-slate-600 font-semibold">Signals</div>
             </div>
 
             {markets.map((market, i) => (
@@ -132,7 +134,6 @@ export default function TopMarketsPage() {
                 rank={i + 1}
                 isExpanded={expandedId === market.ticker}
                 onToggle={() => toggleExpand(market)}
-                onCascade={() => goToCascade(market)}
                 cascade={cascades[market.ticker] ?? null}
                 cascadeLoading={cascadeLoading[market.ticker] ?? false}
               />
@@ -142,10 +143,10 @@ export default function TopMarketsPage() {
 
         {/* Legend */}
         {!loading && markets.length > 0 && (
-          <div className="mt-4 flex items-center gap-6 text-[10px] text-zinc-700">
-            <span>🟢 Green = underpriced if YES</span>
-            <span>🔴 Red = overpriced if YES</span>
-            <span>Click row to see correlated markets</span>
+          <div className="mt-5 flex items-center gap-6 text-[10px] text-slate-700 font-medium">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Underpriced → BUY YES</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> Overpriced → BUY NO</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-violet-400 inline-block" /> Signals = mapped correlations</span>
           </div>
         )}
       </div>
@@ -153,16 +154,15 @@ export default function TopMarketsPage() {
   )
 }
 
-// ── Top market row ────────────────────────────────────────────────────────────
+// ── Top market row ─────────────────────────────────────────────────────────────
 
 function TopMarketRow({
-  market, rank, isExpanded, onToggle, onCascade, cascade, cascadeLoading,
+  market, rank, isExpanded, onToggle, cascade, cascadeLoading,
 }: {
   market: TopMarket
   rank: number
   isExpanded: boolean
   onToggle: () => void
-  onCascade: () => void
   cascade: ScenarioResult[] | null
   cascadeLoading: boolean
 }) {
@@ -174,52 +174,57 @@ function TopMarketRow({
     ? vol >= 1000 ? `$${(vol / 1000).toFixed(1)}k` : `$${vol.toFixed(0)}`
     : '—'
 
+  // Color the probability based on position
+  const probColor = prob >= 0.7 ? 'text-emerald-400' : prob <= 0.3 ? 'text-red-400' : 'text-white'
+  const barColor = prob >= 0.7 ? 'bg-emerald-500' : prob <= 0.3 ? 'bg-red-500' : 'bg-violet-500'
+
   return (
-    <div className={`border-b border-zinc-800/30 last:border-b-0 transition-colors ${isExpanded ? 'bg-zinc-900/20' : 'hover:bg-zinc-900/10'}`}>
+    <div className={`border-b border-slate-800/30 last:border-b-0 transition-all ${
+      isExpanded ? 'bg-slate-900/30' : 'hover:bg-slate-900/20'
+    }`}>
 
       {/* Main row */}
       <button onClick={onToggle} className="w-full grid grid-cols-12 gap-3 px-5 py-4 text-left items-center">
 
         {/* Rank */}
         <div className="col-span-1">
-          <span className={`text-sm font-bold font-mono ${rank <= 3 ? 'text-indigo-400' : 'text-zinc-600'}`}>{rank}</span>
+          <span className={`text-sm font-black font-mono ${rank <= 3 ? 'bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent' : 'text-slate-600'}`}>
+            {rank}
+          </span>
         </div>
 
         {/* Title */}
-        <div className="col-span-4">
-          <p className="text-sm text-zinc-200 leading-snug line-clamp-2">{market.title}</p>
-          <p className="text-[10px] text-zinc-700 mt-0.5 uppercase">{market.event_ticker}</p>
+        <div className="col-span-5">
+          <p className="text-sm text-slate-200 leading-snug line-clamp-2 group-hover:text-white">{market.title}</p>
+          <p className="text-[10px] text-slate-700 mt-0.5 uppercase font-mono tracking-wide">{market.event_ticker}</p>
         </div>
 
         {/* Price */}
-        <div className="col-span-2 flex flex-col items-end gap-1">
-          <span className="text-sm font-mono font-bold text-zinc-100">{formatProbability(prob)}</span>
-          <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
-            <div className="h-full bg-indigo-500/60 rounded-full" style={{ width: `${prob * 100}%` }} />
+        <div className="col-span-2 flex flex-col items-end gap-1.5">
+          <span className={`text-sm font-mono font-black ${probColor}`}>{formatProbability(prob)}</span>
+          <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className={`h-full ${barColor} rounded-full opacity-60 transition-all`} style={{ width: `${prob * 100}%` }} />
           </div>
         </div>
 
         {/* 24h Volume */}
         <div className="col-span-2 text-right">
-          <span className={`text-sm font-mono ${vol > 0 ? 'text-zinc-200' : 'text-zinc-700'}`}>{volStr}</span>
+          <span className={`text-sm font-mono ${vol > 0 ? 'text-slate-200 font-bold' : 'text-slate-700'}`}>{volStr}</span>
         </div>
 
         {/* Signals badge */}
-        <div className="col-span-2 flex justify-end">
+        <div className="col-span-2 flex items-center justify-end gap-2">
           {hasCascade ? (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+            <span className="text-xs font-black px-3 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25 tracking-wide"
+              style={{ boxShadow: '0 0 12px rgba(139,92,246,0.15)' }}>
               {market.relationship_count} signals
             </span>
           ) : market.db_id ? (
-            <span className="text-[10px] text-zinc-700 px-2 py-1 rounded-full border border-zinc-800/60">unmapped</span>
+            <span className="text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/60 font-medium">unmapped</span>
           ) : (
-            <span className="text-[10px] text-zinc-700">—</span>
+            <span className="text-[10px] text-slate-700">—</span>
           )}
-        </div>
-
-        {/* Expand chevron */}
-        <div className="col-span-1 flex justify-end">
-          <svg className={`w-3.5 h-3.5 text-zinc-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          <svg className={`w-3 h-3 text-slate-600 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -228,59 +233,58 @@ function TopMarketRow({
 
       {/* Expanded panel */}
       {isExpanded && (
-        <div className="px-5 pb-5 pt-2 border-t border-zinc-800/30">
-          <div className="ml-4 space-y-3">
+        <div className="px-5 pb-5 pt-3 border-t border-slate-800/30">
+          <div className="ml-4 space-y-4">
 
-            {/* Market meta */}
+            {/* Meta row */}
             <div className="grid grid-cols-3 gap-3">
-              <MiniCard label="Current Price" value={formatProbability(prob)} />
+              <MiniCard label="Current Price" value={formatProbability(prob)} valueColor={probColor} />
               <MiniCard label="24h Volume" value={volStr} />
-              <MiniCard label="Open Interest" value={market.open_interest > 0 ? `$${(market.open_interest).toFixed(0)}` : '—'} />
+              <MiniCard label="Open Interest" value={market.open_interest > 0 ? `$${market.open_interest.toFixed(0)}` : '—'} />
             </div>
 
             {/* Cascade section */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] uppercase tracking-widest text-zinc-500">
-                  {hasCascade ? 'Correlated Markets — if this resolves YES' : 'Correlations'}
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+                  {hasCascade ? 'Cascade Signals — if YES resolves' : 'Correlations'}
                 </p>
                 {hasCascade && (
-                  <button onClick={e => { e.stopPropagation(); onCascade() }}
-                    className="text-[10px] text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-400/50 px-3 py-1 rounded-lg transition-colors">
+                  <Link href="/scenario"
+                    className="text-[10px] text-violet-400 hover:text-violet-300 border border-violet-500/30 hover:border-violet-400/50 px-3 py-1 rounded-lg transition-colors font-semibold">
                     Full Analysis →
-                  </button>
+                  </Link>
                 )}
               </div>
 
               {cascadeLoading ? (
                 <div className="flex items-center gap-2 py-4">
-                  <div className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-indigo-500 rounded-full animate-spin" />
-                  <span className="text-xs text-zinc-600">Loading correlations...</span>
+                  <div className="w-4 h-4 border-2 border-slate-800 border-t-violet-500 rounded-full animate-spin" />
+                  <span className="text-xs text-slate-600">Computing correlations…</span>
                 </div>
               ) : !hasCascade ? (
-                <div className="py-4 px-4 rounded-xl bg-zinc-900/40 border border-zinc-800/40">
-                  <p className="text-xs text-zinc-600">
-                    {market.db_id
-                      ? 'No correlations mapped for this market yet. Use the '
-                      : 'This market isn\'t in the database yet. Use the '}
-                    <Link href="/scenario" className="text-indigo-400 hover:text-indigo-300 underline">Scenario Builder</Link>
-                    {' to explore it manually.'}
+                <div className="py-4 px-4 rounded-xl bg-slate-900/40 border border-slate-800/40">
+                  <p className="text-xs text-slate-600">
+                    No correlations mapped yet.{' '}
+                    <Link href="/scenario" className="text-violet-400 hover:text-violet-300 underline">
+                      Explore in Scenario Builder →
+                    </Link>
                   </p>
                 </div>
               ) : cascade === null ? (
-                <p className="text-xs text-zinc-700 py-2">Click to load correlations...</p>
+                <p className="text-xs text-slate-700 py-2">Expand to load correlations…</p>
               ) : cascade.length === 0 ? (
-                <p className="text-xs text-zinc-600 py-2">No correlated markets found.</p>
+                <p className="text-xs text-slate-600 py-2">No correlated markets found.</p>
               ) : (
                 <div className="space-y-2">
                   {cascade.slice(0, 5).map(result => (
                     <CascadePreviewRow key={result.market.id} result={result} />
                   ))}
                   {cascade.length > 5 && (
-                    <button onClick={e => { e.stopPropagation(); onCascade() }}
-                      className="w-full text-center text-[10px] text-zinc-600 hover:text-zinc-400 py-2 transition-colors">
+                    <Link href="/scenario"
+                      className="block w-full text-center text-[10px] text-slate-600 hover:text-slate-400 py-2.5 transition-colors border border-slate-800/40 rounded-xl hover:border-slate-700/40">
                       +{cascade.length - 5} more — Full Analysis →
-                    </button>
+                    </Link>
                   )}
                 </div>
               )}
@@ -292,47 +296,45 @@ function TopMarketRow({
   )
 }
 
-// ── Cascade preview row (inside expanded market) ──────────────────────────────
+// ── Cascade preview row ────────────────────────────────────────────────────────
 
 function CascadePreviewRow({ result }: { result: ScenarioResult }) {
   const isUp = result.direction === 'up'
   const isDown = result.direction === 'down'
-  const edgePp = Math.abs(result.distortion * 100)
-
   return (
     <div className={`grid grid-cols-12 gap-2 px-4 py-2.5 rounded-xl border text-xs transition-colors ${
-      isUp ? 'bg-emerald-500/5 border-emerald-500/15' :
-      isDown ? 'bg-red-500/5 border-red-500/15' :
-      'bg-zinc-900/40 border-zinc-800/30'
+      isUp ? 'bg-emerald-500/[0.05] border-emerald-500/15' :
+      isDown ? 'bg-red-500/[0.05] border-red-500/15' :
+      'bg-slate-900/40 border-slate-800/30'
     }`}>
       {/* Trade pill */}
       <div className="col-span-2 flex items-center">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border tracking-wide ${
+        <span className={`text-[9px] font-black px-2 py-0.5 rounded-lg border tracking-widest ${
           isUp ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
           isDown ? 'bg-red-500/15 text-red-300 border-red-500/30' :
-          'bg-zinc-800/40 text-zinc-500 border-zinc-700/30'
+          'bg-slate-800/40 text-slate-500 border-slate-700/30'
         }`}>
           {isUp ? 'BUY YES' : isDown ? 'BUY NO' : 'HOLD'}
         </span>
       </div>
 
-      {/* Market title */}
+      {/* Title */}
       <div className="col-span-5 flex items-center">
-        <p className="text-zinc-300 leading-snug line-clamp-1">{result.market.title}</p>
+        <p className="text-slate-300 leading-snug line-clamp-1">{result.market.title}</p>
       </div>
 
-      {/* Now → Fair */}
+      {/* Price */}
       <div className="col-span-3 flex items-center justify-end gap-1.5">
-        <span className="font-mono text-zinc-500">{formatProbability(result.current_probability)}</span>
-        <span className="text-zinc-700">→</span>
-        <span className={`font-mono font-semibold ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-zinc-500'}`}>
+        <span className="font-mono text-slate-500">{formatProbability(result.current_probability)}</span>
+        <span className="text-slate-700">→</span>
+        <span className={`font-mono font-bold ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-slate-500'}`}>
           {formatProbability(result.implied_probability)}
         </span>
       </div>
 
       {/* Edge */}
       <div className="col-span-2 flex items-center justify-end">
-        <span className={`font-mono font-bold ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-zinc-600'}`}>
+        <span className={`font-mono font-black text-sm ${isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-slate-600'}`}>
           {isUp ? '↑' : isDown ? '↓' : '→'}{formatDistortion(result.distortion)}
         </span>
       </div>
@@ -340,13 +342,13 @@ function CascadePreviewRow({ result }: { result: ScenarioResult }) {
   )
 }
 
-// ── Mini stat card ────────────────────────────────────────────────────────────
+// ── Mini stat card ─────────────────────────────────────────────────────────────
 
-function MiniCard({ label, value }: { label: string; value: string }) {
+function MiniCard({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
   return (
-    <div className="bg-zinc-900/50 rounded-lg px-3 py-2 border border-zinc-800/40">
-      <p className="text-[10px] uppercase tracking-widest text-zinc-600 mb-0.5">{label}</p>
-      <p className="text-sm font-mono font-semibold text-zinc-200">{value}</p>
+    <div className="bg-slate-900/50 rounded-xl px-3 py-2.5 border border-slate-800/40">
+      <p className="text-[10px] uppercase tracking-widest text-slate-600 mb-1 font-semibold">{label}</p>
+      <p className={`text-sm font-mono font-black ${valueColor ?? 'text-slate-200'}`}>{value}</p>
     </div>
   )
 }
