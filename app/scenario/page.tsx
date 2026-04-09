@@ -6,21 +6,23 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Market, ScenarioResult } from '@/lib/probability'
 import { formatProbability, formatDistortion } from '@/lib/probability'
 
-// Converts a Kalshi market ticker to the correct kalshi.com URL.
-// Strips the last hyphenated segment (the outcome/date suffix) to get the event slug.
-// e.g. KXTRUMPRESIGN-26 → kalshi.com/markets/kxtrumpresign-26
-//      KXIRANCWC26-YES  → kalshi.com/markets/kxirancwc26
-function toKalshiUrl(ticker: string): string {
-  // Kalshi routes by event/series ticker, not the full market ticker.
-  // Strip YES/NO outcome suffix AND trailing version suffix (e.g. -29, -26MAR17).
-  // KXAMEND25-29     → KXAMEND25
-  // KXTRUMPRESIGN-26MAR17 → KXTRUMPRESIGN
-  // KXHABEAS-29YES   → KXHABEAS
-  const event = ticker
-    .replace(/-(?:YES|NO)$/i, '')          // strip outcome
-    .replace(/-\d{2}[A-Z0-9]*$/i, '')      // strip version (e.g. -29, -26MAR17)
-    .toUpperCase()
-  return `https://kalshi.com/markets/${event}`
+// KalshiLink: resolves the correct Kalshi URL server-side then opens it.
+function KalshiLink({ ticker, className, children }: {
+  ticker: string; className?: string; children: React.ReactNode
+}) {
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      const res = await fetch(`/api/markets/kalshi-url?ticker=${encodeURIComponent(ticker)}`)
+      const { url } = await res.json()
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch {
+      // fallback: best-effort slug
+      const slug = ticker.replace(/-(?:YES|NO)$/i, '').replace(/-\d{2}[A-Z0-9]*$/i, '').toUpperCase()
+      window.open(`https://kalshi.com/markets/${slug}`, '_blank', 'noopener,noreferrer')
+    }
+  }
+  return <button onClick={handleClick} className={className}>{children}</button>
 }
 
 export default function ScenarioPage() {
@@ -149,9 +151,7 @@ export default function ScenarioPage() {
     ? results.reduce((s, r) => s + Math.abs(r.distortion * 100), 0) / results.length
     : 0
 
-  const kalshiUrl = assumedMarket
-    ? toKalshiUrl(assumedMarket.external_id)
-    : null
+  const assumedTicker = assumedMarket?.external_id ?? null
 
   const SearchDropdown = () => searchOpen && markets.length > 0 ? (
     <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl shadow-black/10 dark:shadow-black/60 z-50 overflow-hidden max-h-72 overflow-y-auto">
@@ -324,14 +324,14 @@ export default function ScenarioPage() {
                       : 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/25'
                   }`}>{resolvesYes ? '✓ YES' : '✗ NO'}</span>
                   <span className="text-[9px] text-slate-400 dark:text-white/25">at {Math.round(assumedProbability * 100)}% certainty</span>
-                  {kalshiUrl && (
-                    <a href={kalshiUrl} target="_blank" rel="noopener noreferrer"
+                  {assumedTicker && (
+                    <KalshiLink ticker={assumedTicker}
                       className="inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/25 hover:bg-green-500/20 transition-all ml-1">
                       View on Kalshi
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
-                    </a>
+                    </KalshiLink>
                   )}
                 </div>
                 <p className="text-base font-bold text-slate-900 dark:text-white leading-snug">{assumedMarket.title}</p>
@@ -552,7 +552,7 @@ function ResultRow({ result, rank, isExpanded, onToggle }: {
     ? (isUp ? 'bg-emerald-50 dark:bg-emerald-500/[0.05]' : isDown ? 'bg-red-50 dark:bg-red-500/[0.05]' : 'bg-slate-50 dark:bg-white/[0.02]')
     : (isUp ? 'hover:bg-emerald-50 dark:hover:bg-emerald-500/[0.04]' : isDown ? 'hover:bg-red-50 dark:hover:bg-red-500/[0.04]' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]')
 
-  const kalshiLink = toKalshiUrl(market.external_id)
+  const kalshiTicker = market.external_id
 
   return (
     <div className={`border-b border-slate-100 dark:border-white/[0.05] border-l-2 ${leftBorder} transition-all ${rowBg}`}>
@@ -617,13 +617,13 @@ function ResultRow({ result, rank, isExpanded, onToggle }: {
                   <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg border ${tradeBg}`}>{tradeLabel}</span>
                   <span className="text-[10px] text-slate-400 dark:text-white/25 uppercase tracking-widest font-semibold">Trade thesis</span>
                 </div>
-                <a href={kalshiLink} target="_blank" rel="noopener noreferrer"
+                <KalshiLink ticker={kalshiTicker}
                   className="text-[10px] text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 flex items-center gap-1 transition-colors">
                   Trade on Kalshi
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
-                </a>
+                </KalshiLink>
               </div>
               <p className="text-xs text-slate-600 dark:text-white/60 leading-relaxed">
                 {isUp
