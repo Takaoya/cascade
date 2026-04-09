@@ -6,6 +6,15 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import type { Market, ScenarioResult } from '@/lib/probability'
 import { formatProbability, formatDistortion } from '@/lib/probability'
 
+// Converts a Kalshi market ticker to the correct kalshi.com URL.
+// Strips the last hyphenated segment (the outcome/date suffix) to get the event slug.
+// e.g. KXTRUMPRESIGN-26 → kalshi.com/markets/kxtrumpresign-26
+//      KXIRANCWC26-YES  → kalshi.com/markets/kxirancwc26
+function toKalshiUrl(ticker: string): string {
+  const clean = ticker.replace(/-(?:YES|NO)$/i, '') // strip YES/NO outcome suffix
+  return `https://kalshi.com/markets/${clean.toLowerCase()}`
+}
+
 export default function ScenarioPage() {
   const [query, setQuery] = useState('')
   const [markets, setMarkets] = useState<Market[]>([])
@@ -133,7 +142,7 @@ export default function ScenarioPage() {
     : 0
 
   const kalshiUrl = assumedMarket
-    ? `https://kalshi.com/markets/${(assumedMarket.category ?? '').toLowerCase()}`
+    ? toKalshiUrl(assumedMarket.external_id)
     : null
 
   const SearchDropdown = () => searchOpen && markets.length > 0 ? (
@@ -535,7 +544,7 @@ function ResultRow({ result, rank, isExpanded, onToggle }: {
     ? (isUp ? 'bg-emerald-50 dark:bg-emerald-500/[0.05]' : isDown ? 'bg-red-50 dark:bg-red-500/[0.05]' : 'bg-slate-50 dark:bg-white/[0.02]')
     : (isUp ? 'hover:bg-emerald-50 dark:hover:bg-emerald-500/[0.04]' : isDown ? 'hover:bg-red-50 dark:hover:bg-red-500/[0.04]' : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]')
 
-  const kalshiLink = `https://kalshi.com/markets/${(market.category ?? '').toLowerCase()}`
+  const kalshiLink = toKalshiUrl(market.external_id)
 
   return (
     <div className={`border-b border-slate-100 dark:border-white/[0.05] border-l-2 ${leftBorder} transition-all ${rowBg}`}>
