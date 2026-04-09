@@ -84,6 +84,7 @@ export interface KalshiSingleMarket {
   yes_bid_dollars?: string
   yes_ask_dollars?: string
   last_price_dollars?: string
+  previous_price_dollars?: string
   volume_24h_fp?: number
   open_interest_fp?: number
   liquidity_dollars?: string
@@ -134,27 +135,12 @@ export async function fetchKalshiMarketsByEventTicker(eventTicker: string): Prom
 
 // ── Top markets fetch ─────────────────────────────────────────────────────────
 
-const TARGET_EVENTS = [
-  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
-  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
-  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
-  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
-  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
-  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
-  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
-  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
-]
-
 /**
  * Fetches top Kalshi markets for the Market Movers page.
  *
- * Strategy:
- * 1. Fetch all markets across our curated political/economic event tickers in parallel.
- *    These are guaranteed to have real prices and represent meaningful markets.
- * 2. Filter to markets with an actual price (eliminates zero-price parlay markets).
- * 3. Sort by 24h volume → open interest → price.
- *
- * Note: Requires KALSHI_API_KEY to be set as a Vercel environment variable.
+ * Strategy: Fetch multiple pages of open markets in parallel, then sort by
+ * 24h trading volume. This is fully dynamic — no hardcoded event list —
+ * so it always reflects what's actually trading on Kalshi right now.
  */
 export async function fetchTopKalshiMarkets(): Promise<KalshiSingleMarket[]> {
   const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -162,12 +148,15 @@ export async function fetchTopKalshiMarkets(): Promise<KalshiSingleMarket[]> {
     authHeaders['Authorization'] = `Bearer ${process.env.KALSHI_API_KEY}`
   }
 
-  const results = await Promise.all(
-    TARGET_EVENTS.map(async event => {
+  // Fetch 3 pages of 100 open markets in parallel for broad coverage
+  const pages = await Promise.all(
+    [1, 2, 3].map(async (page) => {
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 6000)
+      const timeout = setTimeout(() => controller.abort(), 8000)
       try {
-        const res = await fetch(`${KALSHI_BASE_URL}/markets?event_ticker=${event}&status=open&limit=10`, {
+        const params = new URLSearchParams({ status: 'open', limit: '100' })
+        if (page > 1) params.set('page_number', String(page))
+        const res = await fetch(`${KALSHI_BASE_URL}/markets?${params}`, {
           headers: authHeaders,
           signal: controller.signal,
           next: { revalidate: 300 },
@@ -181,16 +170,24 @@ export async function fetchTopKalshiMarkets(): Promise<KalshiSingleMarket[]> {
     })
   )
 
-  const all = results.flat()
+  const all = pages.flat()
+
+  // Deduplicate by ticker
+  const seen = new Set<string>()
+  const unique = all.filter(m => {
+    if (seen.has(m.ticker)) return false
+    seen.add(m.ticker)
+    return true
+  })
 
   // Keep only markets with a real price
-  const priced = all.filter(m => {
+  const priced = unique.filter(m => {
     const bid = parseFloat(m.yes_bid_dollars ?? '0') || 0
     const last = parseFloat(m.last_price_dollars ?? '0') || 0
     return bid > 0 || last > 0
   })
 
-  // Sort: 24h volume → open interest → price (all as fallbacks when previous is 0)
+  // Sort: 24h volume → open interest → price
   return priced.sort((a, b) => {
     const volDiff = (b.volume_24h_fp ?? 0) - (a.volume_24h_fp ?? 0)
     if (Math.abs(volDiff) > 0.0001) return volDiff

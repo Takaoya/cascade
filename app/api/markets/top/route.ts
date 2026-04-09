@@ -1,87 +1,72 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
-
-// Curated political/economic event tickers — only these show on the Top Markets page.
-// Same list used in seed.ts TARGET_EVENTS (minus the ones with no markets).
-const CURATED_EVENT_TICKERS = [
-  'KXTRUMPRESIGN','KXIMPEACH-29','KXTRUMPREMOVE','KXINSURRECTION-29',
-  'KXFEDEND-29','KXDOED-29','KXHABEAS-29','KXMARTIAL-29JAN20',
-  'KXAMEND25-29','KXCABOUT-26MAR','KXFTAPRC-29','KXFTA-29',
-  'KXBALANCE-29','KXDEBTGROWTH-28DEC31','KXGOVTCUTS-28','KXGDPUSMAX-28',
-  'KXGDPSHAREMANU-29','CHINAUSGDP','KXU3MAX-30','KXCANAL-29',
-  'KXGREENTERRITORY-29','KXCANTERRITORY-29','KXSTATE-29','KXTAIWANLVL4',
-  'KXRECOGROC-29','KXZELENSKYPUTIN-29','KXUSAKIM-29','KXABRAHAMSA-29',
-  'KXABRAHAMSY-29','KXPRESPARTY-2028','KXPRESPERSON-28','POWER-28',
-]
+import { fetchTopKalshiMarkets, kalshiDollarsToProbability } from '@/lib/kalshi'
 
 // GET /api/markets/top
-// Returns the top 10 most-correlated curated political/economic markets.
-// Reads from Supabase DB (fast, no Kalshi API calls). Prices reflect last seed run.
+// Returns top markets ranked by 24h trading volume from Kalshi live data,
+// enriched with relationship counts from the DB.
 export async function GET() {
   try {
     const supabase = createServiceClient()
 
-    // Fetch only our curated political/economic markets
-    const { data: markets, error } = await supabase
-      .from('markets')
-      .select('id, external_id, title, probability, category, source, last_updated')
-      .eq('source', 'kalshi')
-      .in('category', CURATED_EVENT_TICKERS)
-      .order('probability', { ascending: false })
+    // Fetch live Kalshi data (has volume_24h_fp) + DB relationship counts in parallel
+    const [kalshiMarkets, dbResult, relsResult] = await Promise.all([
+      fetchTopKalshiMarkets(),
+      supabase.from('markets').select('id, external_id, title, probability, category, last_updated').eq('source', 'kalshi'),
+      supabase.from('market_relationships').select('market_a_id'),
+    ])
 
-    if (error) {
-      return NextResponse.json({ markets: [], error: error.message, fetched_at: new Date().toISOString() }, { status: 500 })
-    }
+    const dbMarkets = dbResult.data ?? []
+    const rels = relsResult.data ?? []
 
-    if (!markets || markets.length === 0) {
-      return NextResponse.json({ markets: [], error: 'No markets in database', fetched_at: new Date().toISOString() })
-    }
-
-    // Get relationship counts for all markets
-    const { data: rels } = await supabase
-      .from('market_relationships')
-      .select('market_a_id')
-
+    // Build relationship count map keyed by market DB id
     const relCounts: Record<string, number> = {}
-    ;(rels ?? []).forEach(r => {
+    rels.forEach(r => {
       relCounts[r.market_a_id] = (relCounts[r.market_a_id] ?? 0) + 1
     })
 
-    const scored = markets
-      // Filter out near-certain markets (already resolved / no trading edge)
-      .filter(m => m.probability > 0.01 && m.probability < 0.99)
-      .map(m => {
-        const eventTicker = (m.category ?? '').toLowerCase()
-        const marketTicker = (m.external_id ?? '').toLowerCase()
-        // Kalshi URL: event page (most reliable without the slug segment)
-        const kalshi_url = `https://kalshi.com/markets/${eventTicker}`
+    // Build DB lookup by ticker (external_id)
+    const dbByTicker: Record<string, typeof dbMarkets[0]> = {}
+    dbMarkets.forEach(m => { if (m.external_id) dbByTicker[m.external_id] = m })
+
+    // Merge live Kalshi data with DB relationship counts
+    const markets = kalshiMarkets
+      .filter(km => {
+        const prob = kalshiDollarsToProbability(km)
+        return prob > 0.01 && prob < 0.99
+      })
+      .map(km => {
+        const dbMatch = dbByTicker[km.ticker]
+        const prob = kalshiDollarsToProbability(km)
+        const eventTicker = (km.event_ticker ?? '').toLowerCase()
         return {
-          ticker: m.external_id,
-          event_ticker: m.category,
-          title: m.title,
-          probability: m.probability,
-          volume_24h: 0,
-          open_interest: 0,
-          liquidity: 0,
-          db_id: m.id,
-          relationship_count: relCounts[m.id] ?? 0,
-          last_updated: m.last_updated,
-          kalshi_url,
+          ticker: km.ticker,
+          event_ticker: km.event_ticker ?? km.ticker,
+          title: km.title,
+          probability: prob,
+          volume_24h: km.volume_24h_fp ?? 0,
+          open_interest: km.open_interest_fp ?? 0,
+          liquidity: parseFloat(km.liquidity_dollars ?? '0') || 0,
+          previous_price: parseFloat(km.previous_price_dollars ?? '0') || null,
+          db_id: dbMatch?.id ?? null,
+          relationship_count: dbMatch ? (relCounts[dbMatch.id] ?? 0) : 0,
+          last_updated: dbMatch?.last_updated ?? new Date().toISOString(),
+          kalshi_url: `https://kalshi.com/markets/${eventTicker}`,
         }
       })
-      // Sort: mapped markets first, then by distance from 50% (most uncertain = most interesting)
+      // Sort: by volume first, then relationship count
       .sort((a, b) => {
-        const relDiff = b.relationship_count - a.relationship_count
-        if (relDiff !== 0) return relDiff
-        // Closer to 50% = more uncertain = more interesting
-        return Math.abs(a.probability - 0.5) - Math.abs(b.probability - 0.5)
+        const volDiff = b.volume_24h - a.volume_24h
+        if (Math.abs(volDiff) > 0.01) return volDiff
+        return b.relationship_count - a.relationship_count
       })
+      .slice(0, 20)
 
     return NextResponse.json({
-      markets: scored.slice(0, 10),
+      markets,
       total: markets.length,
       fetched_at: new Date().toISOString(),
-      source: 'db',
+      source: 'kalshi_live',
     })
   } catch (err) {
     console.error('[/api/markets/top]', err)
