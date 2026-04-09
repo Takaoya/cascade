@@ -38,10 +38,10 @@ export async function GET() {
       .map(km => {
         const dbMatch = dbByTicker[km.ticker]
         const prob = kalshiDollarsToProbability(km)
-        const eventTicker = (km.event_ticker ?? '').toLowerCase()
+        const eventTicker = km.event_ticker ?? km.ticker
         return {
           ticker: km.ticker,
-          event_ticker: km.event_ticker ?? km.ticker,
+          event_ticker: eventTicker,
           title: km.title,
           probability: prob,
           volume_24h: km.volume_24h_fp ?? 0,

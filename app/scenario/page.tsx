@@ -11,8 +11,9 @@ import { formatProbability, formatDistortion } from '@/lib/probability'
 // e.g. KXTRUMPRESIGN-26 → kalshi.com/markets/kxtrumpresign-26
 //      KXIRANCWC26-YES  → kalshi.com/markets/kxirancwc26
 function toKalshiUrl(ticker: string): string {
-  const clean = ticker.replace(/-(?:YES|NO)$/i, '') // strip YES/NO outcome suffix
-  return `https://kalshi.com/markets/${clean.toLowerCase()}`
+  // Kalshi URLs use the uppercase ticker directly: kalshi.com/markets/KXHABEAS-29
+  const clean = ticker.replace(/-(?:YES|NO)$/i, '').toUpperCase()
+  return `https://kalshi.com/markets/${clean}`
 }
 
 export default function ScenarioPage() {
