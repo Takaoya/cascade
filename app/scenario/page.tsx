@@ -11,9 +11,16 @@ import { formatProbability, formatDistortion } from '@/lib/probability'
 // e.g. KXTRUMPRESIGN-26 → kalshi.com/markets/kxtrumpresign-26
 //      KXIRANCWC26-YES  → kalshi.com/markets/kxirancwc26
 function toKalshiUrl(ticker: string): string {
-  // Kalshi URLs use the uppercase ticker directly: kalshi.com/markets/KXHABEAS-29
-  const clean = ticker.replace(/-(?:YES|NO)$/i, '').toUpperCase()
-  return `https://kalshi.com/markets/${clean}`
+  // Kalshi routes by event/series ticker, not the full market ticker.
+  // Strip YES/NO outcome suffix AND trailing version suffix (e.g. -29, -26MAR17).
+  // KXAMEND25-29     → KXAMEND25
+  // KXTRUMPRESIGN-26MAR17 → KXTRUMPRESIGN
+  // KXHABEAS-29YES   → KXHABEAS
+  const event = ticker
+    .replace(/-(?:YES|NO)$/i, '')          // strip outcome
+    .replace(/-\d{2}[A-Z0-9]*$/i, '')      // strip version (e.g. -29, -26MAR17)
+    .toUpperCase()
+  return `https://kalshi.com/markets/${event}`
 }
 
 export default function ScenarioPage() {

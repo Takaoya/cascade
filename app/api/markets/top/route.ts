@@ -51,7 +51,7 @@ export async function GET() {
           db_id: dbMatch?.id ?? null,
           relationship_count: dbMatch ? (relCounts[dbMatch.id] ?? 0) : 0,
           last_updated: dbMatch?.last_updated ?? new Date().toISOString(),
-          kalshi_url: `https://kalshi.com/markets/${eventTicker}`,
+          kalshi_url: `https://kalshi.com/markets/${eventTicker.replace(/-\d{2}[A-Z0-9]*$/i, '').toUpperCase()}`,
         }
       })
       // Sort: by volume first, then relationship count
