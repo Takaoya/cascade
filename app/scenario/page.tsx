@@ -197,16 +197,12 @@ export default function ScenarioPage() {
           <div className="flex-1 flex items-center justify-center px-6 py-16">
             <div className="w-full max-w-xl space-y-8">
 
-              <p className="text-center text-[11px] uppercase tracking-[0.35em] text-green-600 dark:text-green-400 font-semibold">
-                Conditional Probability Engine
-              </p>
-
-              <div className="text-center space-y-2">
+              <div className="text-center space-y-3">
                 <h1 className="text-4xl sm:text-[52px] font-black leading-[1.08] tracking-tight text-slate-900 dark:text-white">
-                  Find markets the<br/>scenario missed.
+                  If this resolves YES —<br/>what else moves?
                 </h1>
-                <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed max-w-sm mx-auto pt-2">
-                  Pick any Kalshi market, toggle YES or NO. Cascade surfaces every correlated market that&apos;s now mispriced.
+                <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed max-w-sm mx-auto pt-1">
+                  Pick any Kalshi market. Set it to YES or NO. Cascade finds every correlated market that&apos;s now mispriced and ranks them by edge.
                 </p>
               </div>
 
