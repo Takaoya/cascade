@@ -109,7 +109,7 @@ function ScenarioDemo() {
     <div ref={ref} className={`transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
       <div className="bg-white rounded-2xl shadow-xl shadow-green-100/60 border border-green-100 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-5 py-4 flex items-center justify-between">
+        <div className="bg-green-600 px-5 py-4 flex items-center justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-widest text-green-100 font-semibold">Live example</p>
             <p className="text-sm font-bold text-white mt-0.5">If Trump resigns → YES</p>
@@ -154,15 +154,14 @@ function ScenarioDemo() {
 }
 
 // ── Feature card ──────────────────────────────────────────────────────────────
-function FeatureCard({ icon, title, desc, delay }: { icon: string; title: string; desc: string; delay: number }) {
+function FeatureCard({ title, desc, delay }: { icon?: string; title: string; desc: string; delay: number }) {
   const { ref, visible } = useReveal(0.1)
   return (
     <div ref={ref}
-      className={`bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md hover:border-green-200 transition-all duration-500 cursor-default ${
+      className={`bg-white rounded-xl p-6 border border-slate-100 hover:border-green-200 transition-all duration-500 cursor-default ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
       }`}
       style={{ transitionDelay: `${delay}ms` }}>
-      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-xl mb-4">{icon}</div>
       <p className="text-sm font-bold text-slate-800 mb-2">{title}</p>
       <p className="text-xs text-slate-500 leading-relaxed">{desc}</p>
     </div>
@@ -176,7 +175,7 @@ function StepRow({ num, title, desc, delay }: { num: string; title: string; desc
     <div ref={ref}
       className={`flex items-start gap-5 transition-all duration-600 ${visible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-6'}`}
       style={{ transitionDelay: `${delay}ms` }}>
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center text-white font-black text-sm shrink-0 shadow-md shadow-green-200">
+      <div className="w-10 h-10 rounded-full bg-green-600 flex items-center justify-center text-white font-black text-sm shrink-0">
         {num}
       </div>
       <div>
@@ -205,7 +204,7 @@ export default function Landing({ markets, relationships }: { markets: number; r
         scrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm shadow-slate-100' : 'bg-transparent'
       }`}>
         <div className="flex items-center gap-3">
-          <span className="text-sm font-black tracking-[0.2em] uppercase bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+          <span className="text-sm font-black tracking-[0.2em] uppercase text-slate-900">
             Cascade
           </span>
           <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 border border-green-200 uppercase tracking-widest font-bold">Beta</span>
@@ -213,53 +212,35 @@ export default function Landing({ markets, relationships }: { markets: number; r
         <nav className="flex items-center gap-6">
           <Link href="/top" className="text-xs text-slate-500 hover:text-green-600 transition-colors font-medium">Market Movers</Link>
           <Link href="/scenario"
-            className="text-xs font-bold px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:opacity-90 transition-opacity shadow-sm shadow-green-200">
+            className="text-xs font-bold px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors shadow-sm">
             Try Cascade →
           </Link>
         </nav>
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden px-6 pt-20 pb-28 flex flex-col items-center text-center">
-        {/* Background blobs */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-green-200/50 to-transparent rounded-full blur-[80px]" />
-          <div className="absolute top-40 -left-20 w-[300px] h-[300px] bg-emerald-200/30 rounded-full blur-[60px]" />
-          <div className="absolute top-20 -right-20 w-[250px] h-[250px] bg-green-200/30 rounded-full blur-[60px]" />
-        </div>
-
-        <div className="relative z-10 max-w-3xl mx-auto space-y-8">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-green-700 bg-green-100 border border-green-200 rounded-full px-4 py-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            Kalshi Conditional Probability Engine
-          </div>
-
+      <section className="px-6 pt-20 pb-24 flex flex-col items-center text-center">
+        <div className="max-w-3xl mx-auto space-y-8">
           {/* Headline */}
           <h1 className="text-5xl sm:text-6xl font-black tracking-tight leading-[1.05] text-slate-900">
-            One outcome.<br />
-            <span className="bg-gradient-to-r from-green-600 via-emerald-500 to-green-600 bg-clip-text text-transparent">
-              Every implication.
-            </span>
+            When one market moves,<br />which others are wrong?
           </h1>
 
           <p className="text-slate-500 text-lg leading-relaxed max-w-xl mx-auto">
-            Prediction markets price events in isolation. Cascade models the ripple —
-            showing exactly which markets are mispriced the moment one event shifts.
+            Kalshi markets price events in isolation — but events are correlated.
+            Pick any market, assume it resolves YES or NO, and Cascade instantly shows you
+            which related markets are now mispriced and by how much.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/scenario"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-300/40 hover:shadow-green-300/60 hover:-translate-y-0.5">
-              Open Scenario Builder
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold transition-colors shadow-sm">
+              Analyze a market →
             </Link>
             <Link href="/top"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 hover:border-green-300 text-slate-700 hover:text-green-700 rounded-xl text-sm font-bold transition-all shadow-sm hover:-translate-y-0.5">
-              Market Movers →
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-colors shadow-sm">
+              See what&apos;s trending
             </Link>
           </div>
 
@@ -282,14 +263,6 @@ export default function Landing({ markets, relationships }: { markets: number; r
               </div>
             </div>
           )}
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce opacity-40">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Scroll</p>
-          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
       </section>
 
@@ -356,7 +329,7 @@ export default function Landing({ markets, relationships }: { markets: number; r
                   desc="Cascade shows every related market ranked by edge — biggest mispricing opportunity at the top." />
               </div>
               <Link href="/scenario"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-md shadow-green-200 hover:-translate-y-0.5">
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-bold transition-colors">
                 Try it now →
               </Link>
             </div>
@@ -389,25 +362,18 @@ export default function Landing({ markets, relationships }: { markets: number; r
       </section>
 
       {/* ── CTA banner ── */}
-      <section className="px-6 py-20 bg-gradient-to-br from-green-700 via-green-600 to-emerald-700 relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[400px] h-[300px] bg-white/5 rounded-full blur-[80px]" />
-          <div className="absolute bottom-0 right-1/4 w-[300px] h-[200px] bg-white/5 rounded-full blur-[60px]" />
-        </div>
-        <div className="max-w-2xl mx-auto text-center space-y-6 relative z-10">
+      <section className="px-6 py-20 bg-slate-900">
+        <div className="max-w-2xl mx-auto text-center space-y-6">
           <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
             The market prices events independently.<br />
-            <span className="text-green-200">You don&apos;t have to.</span>
+            <span className="text-green-400">You don&apos;t have to.</span>
           </h2>
-          <p className="text-green-100 text-sm leading-relaxed">
+          <p className="text-slate-400 text-sm leading-relaxed">
             Every time a major market shifts, related markets lag behind. Cascade finds that lag — instantly.
           </p>
           <Link href="/scenario"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-green-700 rounded-xl text-sm font-black hover:bg-green-50 transition-all shadow-lg shadow-green-900/20 hover:-translate-y-0.5">
-            Open Scenario Builder
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl text-sm font-black transition-colors">
+            Analyze a market →
           </Link>
         </div>
       </section>
@@ -415,7 +381,7 @@ export default function Landing({ markets, relationships }: { markets: number; r
       {/* Footer */}
       <footer className="bg-white border-t border-slate-100 px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-black tracking-[0.2em] uppercase bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Cascade</span>
+          <span className="text-sm font-black tracking-[0.2em] uppercase text-slate-900">Cascade</span>
           <span className="text-[10px] text-slate-400">Beta</span>
         </div>
         <p className="text-[11px] text-slate-400">Prediction market data via Kalshi</p>

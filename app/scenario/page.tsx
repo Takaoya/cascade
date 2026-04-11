@@ -197,16 +197,12 @@ export default function ScenarioPage() {
           <div className="flex-1 flex items-center justify-center px-6 py-16">
             <div className="w-full max-w-xl space-y-8">
 
-              <p className="text-center text-[11px] uppercase tracking-[0.35em] text-green-600 dark:text-green-400 font-semibold">
-                Conditional Probability Engine
-              </p>
-
               <div className="text-center space-y-2">
                 <h1 className="text-4xl sm:text-[52px] font-black leading-[1.08] tracking-tight text-slate-900 dark:text-white">
-                  Find markets the<br/>scenario missed.
+                  Assume an outcome.<br/>Find the edge.
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base leading-relaxed max-w-sm mx-auto pt-2">
-                  Pick any Kalshi market, toggle YES or NO. Cascade surfaces every correlated market that&apos;s now mispriced.
+                  Pick any Kalshi market. Set it to YES or NO. Cascade instantly shows every correlated market that&apos;s now mispriced — ranked by edge size.
                 </p>
               </div>
 
@@ -244,9 +240,9 @@ export default function ScenarioPage() {
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-6 text-[11px] text-slate-400 dark:text-white/30">
-                <span className="flex items-center gap-1.5">⚡ Real-time Kalshi prices</span>
-                <span className="flex items-center gap-1.5">🔗 13,200+ markets tracked</span>
-                <span className="flex items-center gap-1.5">🤖 AI-mapped correlations</span>
+                <span className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-green-500 inline-block" /> Real-time Kalshi prices</span>
+                <span className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-slate-400 inline-block" /> 13,200+ markets tracked</span>
+                <span className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-slate-400 inline-block" /> Cross-market correlations</span>
               </div>
             </div>
           </div>
@@ -826,7 +822,7 @@ function TrendingChips({ onSearch }: { onSearch: (q: string) => void }) {
   return (
     <div className="mb-6">
       <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400 dark:text-white/20 mb-3 font-semibold text-center">
-        🔥 Trending Right Now
+        Trending Right Now
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         {markets.map(m => (
@@ -851,10 +847,10 @@ function TrendingChips({ onSearch }: { onSearch: (q: string) => void }) {
 // ── Example scenario cards ────────────────────────────────────────────────────
 function ExampleCards({ onSearch }: { onSearch: (q: string) => void }) {
   const examples = [
-    { q: 'Trump resign', scenario: 'YES', impact: '↓ GOP 2028  ↑ Impeach odds', icon: '🏛️' },
-    { q: 'Fed abolished', scenario: 'NO', impact: '→ Debt ceiling  fiscal markets', icon: '📈' },
-    { q: 'China trade deal', scenario: 'YES', impact: '↓ GDP gap  ↑ Manufacturing', icon: '🌐' },
-    { q: 'Taiwan', scenario: 'YES', impact: '↑ Level 4 advisory issued', icon: '⚔️' },
+    { q: 'Trump resign', scenario: 'YES', impact: '↓ GOP 2028  ↑ Impeach odds' },
+    { q: 'Fed abolished', scenario: 'NO', impact: '→ Debt ceiling  fiscal markets' },
+    { q: 'China trade deal', scenario: 'YES', impact: '↓ GDP gap  ↑ Manufacturing' },
+    { q: 'Taiwan', scenario: 'YES', impact: '↑ Level 4 advisory issued' },
   ]
   return (
     <div className="pb-12 px-6">
@@ -866,16 +862,13 @@ function ExampleCards({ onSearch }: { onSearch: (q: string) => void }) {
           {examples.map(ex => (
             <button key={ex.q} onClick={() => onSearch(ex.q)}
               className="text-left p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.07] hover:border-green-400 dark:hover:border-green-500/30 hover:bg-green-50 dark:hover:bg-white/[0.07] transition-all group">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-xl">{ex.icon}</span>
-                <div className="flex-1 flex items-center justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-700 dark:text-white/70 group-hover:text-green-700 dark:group-hover:text-white transition-colors">{ex.q}</p>
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full tracking-widest shrink-0 ${
-                    ex.scenario === 'YES'
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
-                      : 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/20'
-                  }`}>{ex.scenario}</span>
-                </div>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <p className="text-sm font-bold text-slate-700 dark:text-white/70 group-hover:text-green-700 dark:group-hover:text-white transition-colors">{ex.q}</p>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded tracking-widest shrink-0 ${
+                  ex.scenario === 'YES'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/20'
+                }`}>{ex.scenario}</span>
               </div>
               <p className="text-[11px] text-slate-400 dark:text-white/25 font-mono">{ex.impact}</p>
             </button>
