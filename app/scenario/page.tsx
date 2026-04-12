@@ -41,6 +41,31 @@ export default function ScenarioPage() {
   const [loading, setLoading] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [noRelationships, setNoRelationships] = useState(false)
+  const [exampleMarkets, setExampleMarkets] = useState<Market[]>([])
+
+  // Fetch real markets for examples — guaranteed to exist in the DB
+  useEffect(() => {
+    const queries = ['Trump resign', 'Fed abolished', 'Recession', 'Debt ceiling', 'Ukraine']
+    Promise.all(
+      queries.map(q =>
+        fetch(`/api/markets?q=${encodeURIComponent(q)}`)
+          .then(r => r.json())
+          .then(d => (d.markets ?? []) as Market[])
+          .catch(() => [] as Market[])
+      )
+    ).then(results => {
+      const seen = new Set<string>()
+      const deduped: Market[] = []
+      for (const batch of results) {
+        const first = batch[0]
+        if (first && !seen.has(first.id)) {
+          seen.add(first.id)
+          deduped.push(first)
+        }
+      }
+      setExampleMarkets(deduped.slice(0, 5))
+    })
+  }, [])
 
   const runScenario = useCallback(async (market: Market, prob: number, yes: boolean) => {
     setLoading(true)
@@ -151,16 +176,16 @@ export default function ScenarioPage() {
       {/* ── Top bar ─────────────────────────────────────────────────────────── */}
       <header className="h-11 flex items-center justify-between px-4 border-b border-white/[0.07] shrink-0 bg-[#0b0b0b]">
         <div className="flex items-center gap-3">
-          <a href="/" className="text-xs font-black tracking-[0.25em] uppercase text-white/70 hover:text-white transition-colors">CASCADE</a>
-          <span className="text-white/[0.12]">/</span>
-          <span className="text-xs text-white/35 font-medium">Scenario Analysis</span>
+          <a href="/" className="text-xs font-black tracking-[0.25em] uppercase text-white/80 hover:text-white transition-colors">CASCADE</a>
+          <span className="text-white/20">/</span>
+          <span className="text-xs text-white/50 font-medium">Scenario Analysis</span>
         </div>
         <div className="flex items-center gap-5">
           <div className="hidden sm:flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-            <span className="text-[10px] font-mono text-white/25">Kalshi · Live</span>
+            <span className="text-[10px] font-mono text-white/40">Kalshi · Live</span>
           </div>
-          <a href="/top" className="text-xs text-white/35 hover:text-white/65 transition-colors">Market Movers</a>
+          <a href="/top" className="text-xs text-white/45 hover:text-white/75 transition-colors">Market Movers</a>
           <ThemeToggle />
         </div>
       </header>
@@ -173,14 +198,14 @@ export default function ScenarioPage() {
 
           {/* Panel label */}
           <div className="px-4 py-2.5 border-b border-white/[0.07]">
-            <p className="text-[9px] uppercase tracking-[0.2em] text-white/25 font-semibold">Assumption Builder</p>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-white/40 font-semibold">Assumption Builder</p>
           </div>
 
           <div className="flex-1 p-4 space-y-5">
 
             {/* ── Market search ── */}
             <div>
-              <label className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-semibold block mb-2">Market</label>
+              <label className="text-[9px] uppercase tracking-[0.18em] text-white/45 font-semibold block mb-2">Market</label>
               <div ref={searchRef} className="relative">
                 <input
                   type="text"
@@ -223,7 +248,7 @@ export default function ScenarioPage() {
 
             {/* ── YES / NO ── */}
             <div>
-              <label className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-semibold block mb-2">Assumed Resolution</label>
+              <label className="text-[9px] uppercase tracking-[0.18em] text-white/45 font-semibold block mb-2">Assumed Resolution</label>
               <div className="flex h-9 rounded-md overflow-hidden border border-white/[0.09]">
                 <button
                   onClick={() => handleResolutionToggle(true)}
@@ -250,8 +275,8 @@ export default function ScenarioPage() {
             {/* ── Certainty ── */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[9px] uppercase tracking-[0.18em] text-white/30 font-semibold">Certainty</label>
-                <span className="text-[11px] font-mono text-white/50">{Math.round(assumedProbability * 100)}%</span>
+                <label className="text-[9px] uppercase tracking-[0.18em] text-white/45 font-semibold">Certainty</label>
+                <span className="text-[11px] font-mono text-white/65">{Math.round(assumedProbability * 100)}%</span>
               </div>
               <input
                 type="range" min="1" max="100"
@@ -261,8 +286,8 @@ export default function ScenarioPage() {
                 className="w-full h-1 accent-green-500 cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed"
               />
               <div className="flex justify-between mt-1.5">
-                <span className="text-[9px] font-mono text-white/15">Weak</span>
-                <span className="text-[9px] font-mono text-white/15">Certain</span>
+                <span className="text-[9px] font-mono text-white/30">Weak</span>
+                <span className="text-[9px] font-mono text-white/30">Certain</span>
               </div>
             </div>
 
@@ -270,7 +295,7 @@ export default function ScenarioPage() {
             {assumedMarket ? (
               <div className="rounded-md border border-white/[0.08] bg-white/[0.03] overflow-hidden">
                 <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
-                  <span className="text-[9px] uppercase tracking-widest text-white/25 font-semibold">Selected Market</span>
+                  <span className="text-[9px] uppercase tracking-widest text-white/40 font-semibold">Selected Market</span>
                   <span className={`text-[9px] font-black px-1.5 py-0.5 rounded tracking-widest ml-auto ${
                     resolvesYes
                       ? 'bg-green-500/15 text-green-400 border border-green-500/20'
@@ -278,10 +303,10 @@ export default function ScenarioPage() {
                   }`}>{resolvesYes ? 'YES' : 'NO'}</span>
                 </div>
                 <div className="px-3 py-2.5 space-y-2">
-                  <p className="text-[12px] text-white/65 leading-relaxed">{assumedMarket.title}</p>
+                  <p className="text-[12px] text-white/80 leading-relaxed">{assumedMarket.title}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-white/25">Current price</span>
-                    <span className="text-[11px] font-mono font-bold text-white/55">{formatProbability(assumedMarket.probability)}</span>
+                    <span className="text-[10px] text-white/40">Current price</span>
+                    <span className="text-[11px] font-mono font-bold text-white/70">{formatProbability(assumedMarket.probability)}</span>
                   </div>
                   {assumedTicker && (
                     <KalshiLink ticker={assumedTicker}
@@ -294,20 +319,23 @@ export default function ScenarioPage() {
             ) : (
               /* ── Quick examples (empty state) ── */
               <div className="space-y-1.5">
-                <p className="text-[9px] uppercase tracking-[0.18em] text-white/20 font-semibold mb-2">Example markets</p>
-                {[
-                  { q: 'Trump resign', label: 'Trump resigns before end of term' },
-                  { q: 'Fed abolished', label: 'Federal Reserve abolished' },
-                  { q: 'China trade deal', label: 'US–China trade deal signed' },
-                  { q: 'Taiwan', label: 'Taiwan conflict escalates' },
-                  { q: 'US recession', label: 'US enters recession in 2025' },
-                ].map(ex => (
+                <p className="text-[9px] uppercase tracking-[0.18em] text-white/40 font-semibold mb-2">Try an example</p>
+                {exampleMarkets.length === 0 ? (
+                  <div className="space-y-1.5">
+                    {[1,2,3].map(i => (
+                      <div key={i} className="h-9 rounded border border-white/[0.06] bg-white/[0.02] animate-pulse" />
+                    ))}
+                  </div>
+                ) : exampleMarkets.map(m => (
                   <button
-                    key={ex.q}
-                    onClick={() => { setQuery(ex.q); setSearchOpen(true) }}
-                    className="w-full text-left px-3 py-2 rounded border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.10] transition-all group"
+                    key={m.id}
+                    onClick={() => handleSelect(m)}
+                    className="w-full text-left px-3 py-2.5 rounded border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.15] transition-all group"
                   >
-                    <span className="text-[12px] text-white/35 group-hover:text-white/65 transition-colors leading-snug">{ex.label}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] text-white/60 group-hover:text-white/85 transition-colors leading-snug line-clamp-1 flex-1">{m.title}</span>
+                      <span className="text-[11px] font-mono text-white/30 shrink-0">{formatProbability(m.probability)}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -317,12 +345,12 @@ export default function ScenarioPage() {
           {/* ── Bottom metadata ── */}
           <div className="px-4 py-3 border-t border-white/[0.07] space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] text-white/20 font-mono">Data source</span>
-              <span className="text-[9px] text-white/30 font-mono">Kalshi Trade API v2</span>
+              <span className="text-[9px] text-white/35 font-mono">Data source</span>
+              <span className="text-[9px] text-white/50 font-mono">Kalshi Trade API v2</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[9px] text-white/20 font-mono">Markets indexed</span>
-              <span className="text-[9px] text-white/30 font-mono">13,200+</span>
+              <span className="text-[9px] text-white/35 font-mono">Markets indexed</span>
+              <span className="text-[9px] text-white/50 font-mono">13,200+</span>
             </div>
           </div>
         </aside>
