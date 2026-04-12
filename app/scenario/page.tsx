@@ -43,28 +43,13 @@ export default function ScenarioPage() {
   const [noRelationships, setNoRelationships] = useState(false)
   const [exampleMarkets, setExampleMarkets] = useState<Market[]>([])
 
-  // Fetch real markets for examples — guaranteed to exist in the DB
+  // Fetch markets with the most mapped relationships — these are guaranteed
+  // to produce results when clicked.
   useEffect(() => {
-    const queries = ['Trump resign', 'Fed abolished', 'Recession', 'Debt ceiling', 'Ukraine']
-    Promise.all(
-      queries.map(q =>
-        fetch(`/api/markets?q=${encodeURIComponent(q)}`)
-          .then(r => r.json())
-          .then(d => (d.markets ?? []) as Market[])
-          .catch(() => [] as Market[])
-      )
-    ).then(results => {
-      const seen = new Set<string>()
-      const deduped: Market[] = []
-      for (const batch of results) {
-        const first = batch[0]
-        if (first && !seen.has(first.id)) {
-          seen.add(first.id)
-          deduped.push(first)
-        }
-      }
-      setExampleMarkets(deduped.slice(0, 5))
-    })
+    fetch('/api/markets/featured')
+      .then(r => r.json())
+      .then(d => setExampleMarkets((d.markets ?? []).slice(0, 5) as Market[]))
+      .catch(() => {})
   }, [])
 
   const runScenario = useCallback(async (market: Market, prob: number, yes: boolean) => {
@@ -397,11 +382,7 @@ export default function ScenarioPage() {
                     <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-sm font-bold mx-auto">!</div>
                     <p className="text-sm text-white/40 font-medium">No correlations mapped for this market</p>
                     <p className="text-[11px] text-white/20 leading-relaxed">
-                      Try{' '}
-                      <button onClick={() => { setQuery('Trump resign'); setSearchOpen(true) }} className="text-green-400/70 hover:text-green-400 underline">Trump resign</button>
-                      {' '}or{' '}
-                      <button onClick={() => { setQuery('Fed abolished'); setSearchOpen(true) }} className="text-green-400/70 hover:text-green-400 underline">Fed abolished</button>
-                      {' '}to see a full cascade.
+                      Select one of the example markets in the left panel to see a full cascade.
                     </p>
                   </div>
                 ) : (
