@@ -2,51 +2,56 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
 
 // GET /api/markets/featured
-// Returns markets that have the most mapped relationships — guaranteed to
-// produce results when used as scenario examples.
+// Returns markets that have the most CROSS-CATEGORY relationships — i.e.,
+// markets where assuming an outcome ripples into genuinely different market
+// domains. This ensures featured examples show real cross-market impact,
+// not just variants of the same event (like "who else acquires Pinterest").
 export async function GET() {
   const supabase = createServiceClient()
 
-  // Pull all relationship source markets (market_a_id) ordered by weight
-  // so high-confidence relationships surface first.
-  const { data: rels, error: relError } = await supabase
+  const { data: rels, error } = await supabase
     .from('market_relationships')
-    .select('market_a_id')
-    .order('weight', { ascending: false })
-    .limit(500)
+    .select(`
+      market_a_id,
+      market_a:markets!market_relationships_market_a_id_fkey(id, title, category, probability, external_id, source),
+      market_b:markets!market_relationships_market_b_id_fkey(id, title, category)
+    `)
+    .limit(1000)
 
-  if (relError || !rels?.length) {
+  if (error || !rels?.length) {
     return NextResponse.json({ markets: [] })
   }
 
-  // Count how many relationships each market_a has
-  const counts: Record<string, number> = {}
+  // Score each market_a by number of relationships where market_b is in a
+  // DIFFERENT category — these are the genuine cross-market signals.
+  const scores: Record<string, { market: Record<string, unknown>; total: number; cross: number }> = {}
+
   for (const r of rels) {
-    counts[r.market_a_id] = (counts[r.market_a_id] ?? 0) + 1
+    const a = r.market_a as unknown as Record<string, unknown> | null
+    const b = r.market_b as unknown as Record<string, unknown> | null
+    if (!a || !b) continue
+
+    if (!scores[r.market_a_id]) {
+      scores[r.market_a_id] = { market: a, total: 0, cross: 0 }
+    }
+
+    scores[r.market_a_id].total++
+    if (b.category !== a.category) {
+      scores[r.market_a_id].cross++
+    }
   }
 
-  // Take the 6 markets with the most relationships
-  const topIds = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
+  // Sort: primary = cross-category count, secondary = total relationships.
+  // Markets with zero cross-category relationships (all same-event variants)
+  // are deprioritized even if they have many total relationships.
+  const ranked = Object.values(scores)
+    .filter(s => s.cross > 0)          // must have at least one cross-cat rel
+    .sort((a, b) => b.cross - a.cross || b.total - a.total)
     .slice(0, 6)
-    .map(([id]) => id)
-
-  const { data: markets, error: mktError } = await supabase
-    .from('markets')
-    .select('*')
-    .in('id', topIds)
-
-  if (mktError) {
-    return NextResponse.json({ error: mktError.message }, { status: 500 })
-  }
-
-  // Re-sort to match the relationship-count order
-  const sorted = topIds
-    .map(id => markets?.find(m => m.id === id))
-    .filter(Boolean)
+    .map(s => s.market)
 
   return NextResponse.json(
-    { markets: sorted },
+    { markets: ranked },
     { headers: { 'Cache-Control': 's-maxage=300, stale-while-revalidate=60' } }
   )
 }
